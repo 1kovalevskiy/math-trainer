@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -18,8 +19,9 @@ var (
 func (m Model) View() string {
 	var b strings.Builder
 
-	b.WriteString("Результаты тренировки\n\n")
-	b.WriteString("Сложность: " + m.summary.Difficulty.String() + "\n\n")
+	b.WriteString(ui.Title.Render("Результаты тренировки") + "\n")
+	b.WriteString(ui.Subtitle.Render("Сводка по всем примерам") + "\n\n")
+	b.WriteString(ui.Label.Render("Сложность: ") + ui.Value.Render(m.summary.Difficulty.String()) + "\n\n")
 
 	for _, entry := range m.summary.Results {
 		b.WriteString(renderEntry(entry) + "\n")
@@ -27,16 +29,11 @@ func (m Model) View() string {
 
 	b.WriteString("\n")
 	for i, option := range m.options {
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-
-		b.WriteString(cursor + " " + option + "\n")
+		b.WriteString(ui.MenuItem(m.cursor == i, option) + "\n")
 	}
 
-	b.WriteString(fmt.Sprintf("\nПравильных: %d из %d", m.summary.Correct, len(m.summary.Results)))
-	b.WriteString("\n↑/↓ - выбор, Enter - подтвердить")
+	b.WriteString("\n" + ui.Accent.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, len(m.summary.Results))))
+	b.WriteString("\n" + ui.Hint.Render("↑/↓ - выбор, Enter - подтвердить"))
 
 	return b.String()
 }

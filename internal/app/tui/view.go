@@ -1,16 +1,37 @@
 package tui
 
+import (
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
+)
+
 func (m Model) View() string {
+	var content string
+
 	switch m.screen {
 	case ScreenStart:
-		return m.startModel.View()
+		content = m.startModel.View()
 	case ScreenSettings:
-		return m.settingsModel.View()
+		content = m.settingsModel.View()
 	case ScreenTask:
-		return m.taskModel.View()
+		content = m.taskModel.View()
 	case ScreenResult:
-		return m.resultModel.View()
+		content = m.resultModel.View()
 	default:
-		return "Неизвестный экран"
+		content = "Неизвестный экран"
 	}
+
+	if m.width <= 0 || m.height <= 0 {
+		return ui.Panel.Render(content)
+	}
+
+	panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
+	panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
+	if panelWidth < 1 {
+		panelWidth = 1
+	}
+	if panelHeight < 1 {
+		panelHeight = 1
+	}
+
+	return ui.Panel.Width(panelWidth).Height(panelHeight).Render(content)
 }
