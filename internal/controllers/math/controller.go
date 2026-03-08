@@ -1,9 +1,9 @@
 package mathController
 
-type Controller struct {}
+type Controller struct{}
 
 func New() *Controller {
 	controller := &Controller{}
-	
+
 	return controller
 }
