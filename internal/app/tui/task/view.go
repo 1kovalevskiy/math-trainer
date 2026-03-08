@@ -5,6 +5,13 @@ import (
 	"strings"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
+	zone "github.com/lrstanley/bubblezone"
+)
+
+const (
+	zoneSubmit = "task:submit"
+	zoneSkip   = "task:skip"
+	zoneBack   = "task:back"
 )
 
 func (m Model) View() string {
@@ -20,8 +27,14 @@ func (m Model) View() string {
 		b.WriteString("\n" + ui.Error.Render("Ошибка: "+m.errText) + "\n")
 	}
 
-	b.WriteString("\n" + ui.Hint.Render("Введите число и нажмите Enter"))
-	b.WriteString("\n" + ui.Hint.Render("S - пропустить пример, Esc - в главное меню"))
+	b.WriteString("\n")
+	b.WriteString(zone.Mark(zoneSubmit, ui.Button("Ответить", m.canSubmit())))
+	b.WriteString(" ")
+	b.WriteString(zone.Mark(zoneSkip, ui.Button("Пропустить", false)))
+	b.WriteString(" ")
+	b.WriteString(zone.Mark(zoneBack, ui.Button("В меню", false)))
+	b.WriteString("\n\n" + ui.Hint.Render("Введите число и нажмите Enter"))
+	b.WriteString("\n" + ui.Hint.Render("S - пропустить, Esc - в меню, Click - мышь"))
 
 	return b.String()
 }

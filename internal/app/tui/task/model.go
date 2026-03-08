@@ -48,3 +48,7 @@ func (m Model) expectedAnswer() int {
 		return 0
 	}
 }
+
+func (m Model) canSubmit() bool {
+	return m.input != ""
+}

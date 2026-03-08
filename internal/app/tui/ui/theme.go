@@ -36,21 +36,45 @@ var (
 		Bold(true).
 		Foreground(lipgloss.Color("221"))
 
-	MenuActive = lipgloss.NewStyle().
+	buttonActive = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("230")).
 			Background(lipgloss.Color("62")).
-			Padding(0, 1)
+			Padding(0, 2)
 
-	MenuInactive = lipgloss.NewStyle().
+	buttonInactive = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
-			Padding(0, 1)
+			Background(lipgloss.Color("238")).
+			Padding(0, 2)
+
+	smallButtonActive = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("230")).
+				Background(lipgloss.Color("99")).
+				Padding(0, 1)
+
+	smallButtonInactive = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("252")).
+				Background(lipgloss.Color("239")).
+				Padding(0, 1)
 )
 
 func MenuItem(active bool, text string) string {
+	return Button(text, active)
+}
+
+func Button(text string, active bool) string {
 	if active {
-		return MenuActive.Render("▸ " + text)
+		return buttonActive.Render(text)
 	}
 
-	return MenuInactive.Render("  " + text)
+	return buttonInactive.Render(text)
+}
+
+func SmallButton(text string, active bool) string {
+	if active {
+		return smallButtonActive.Render(text)
+	}
+
+	return smallButtonInactive.Render(text)
 }

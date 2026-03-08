@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 func (m Model) View() string {
@@ -21,7 +22,7 @@ func (m Model) View() string {
 	}
 
 	if m.width <= 0 || m.height <= 0 {
-		return ui.Panel.Render(content)
+		return zone.Scan(ui.Panel.Render(content))
 	}
 
 	panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
@@ -33,5 +34,5 @@ func (m Model) View() string {
 		panelHeight = 1
 	}
 
-	return ui.Panel.Width(panelWidth).Height(panelHeight).Render(content)
+	return zone.Scan(ui.Panel.Width(panelWidth).Height(panelHeight).Render(content))
 }
