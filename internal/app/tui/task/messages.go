@@ -7,11 +7,11 @@ type GeneratedMsg struct {
 }
 
 type SubmitMsg struct {
-	Difficulty shared.Difficulty
-	Expression string
-	Expected   int
-	Answer     int
-	Correct    bool
+	Result shared.ExampleResult
+}
+
+type SkipMsg struct {
+	Result shared.ExampleResult
 }
 
 type BackMsg struct{}

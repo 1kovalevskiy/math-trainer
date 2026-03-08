@@ -1,5 +1,7 @@
 package settings
 
+import "github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+
 import tea "github.com/charmbracelet/bubbletea"
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -10,17 +12,34 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch key.String() {
 	case "up", "k":
-		if m.cursor > 0 {
+		if m.cursor > rowDifficulty {
 			m.cursor--
 		}
 	case "down", "j":
-		if m.cursor < len(m.difficulties)-1 {
+		if m.cursor < lastRow {
 			m.cursor++
 		}
+	case "left", "h":
+		switch m.cursor {
+		case rowDifficulty:
+			m.settings.Difficulty = m.settings.Difficulty.Prev()
+		case rowExamplesCount:
+			m.settings.ExamplesCount = shared.NormalizeExamplesCount(m.settings.ExamplesCount - 1)
+		}
+	case "right", "l":
+		switch m.cursor {
+		case rowDifficulty:
+			m.settings.Difficulty = m.settings.Difficulty.Next()
+		case rowExamplesCount:
+			m.settings.ExamplesCount = shared.NormalizeExamplesCount(m.settings.ExamplesCount + 1)
+		}
 	case "enter":
-		selected := m.selectedDifficulty()
-		m.current = selected
-		return m, emit(ApplyDifficultyMsg{Difficulty: selected})
+		switch m.cursor {
+		case rowApply:
+			return m, emit(ApplySettingsMsg{Settings: m.settings})
+		case rowBack:
+			return m, emit(BackMsg{})
+		}
 	case "esc":
 		return m, emit(BackMsg{})
 	}

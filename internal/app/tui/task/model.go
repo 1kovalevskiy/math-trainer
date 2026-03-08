@@ -19,13 +19,19 @@ func (e Exercise) Expression() string {
 
 type Model struct {
 	difficulty shared.Difficulty
+	index      int
+	total      int
 	exercise   Exercise
 	input      string
 	errText    string
 }
 
-func NewModel(difficulty shared.Difficulty) Model {
-	return Model{difficulty: difficulty}
+func NewModel(difficulty shared.Difficulty, index int, total int) Model {
+	return Model{
+		difficulty: difficulty,
+		index:      index,
+		total:      total,
+	}
 }
 
 func (m Model) Init() tea.Cmd {

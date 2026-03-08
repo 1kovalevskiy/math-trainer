@@ -10,10 +10,11 @@ import (
 )
 
 type Model struct {
-	screen     Screen
-	difficulty shared.Difficulty
-	width      int
-	height     int
+	screen   Screen
+	settings shared.TrainingSettings
+	width    int
+	height   int
+	session  trainingSession
 
 	startModel    start.Model
 	settingsModel settings.Model
@@ -21,15 +22,21 @@ type Model struct {
 	resultModel   result.Model
 }
 
+type trainingSession struct {
+	total   int
+	results []shared.ExampleResult
+}
+
 func NewModel() Model {
-	difficulty := shared.DifficultyEasy
+	defaultSettings := shared.DefaultTrainingSettings()
 
 	return Model{
 		screen:        ScreenStart,
-		difficulty:    difficulty,
+		settings:      defaultSettings,
+		session:       trainingSession{total: defaultSettings.ExamplesCount},
 		startModel:    start.NewModel(),
-		settingsModel: settings.NewModel(difficulty),
-		taskModel:     task.NewModel(difficulty),
+		settingsModel: settings.NewModel(defaultSettings),
+		taskModel:     task.NewModel(defaultSettings.Difficulty, 1, defaultSettings.ExamplesCount),
 		resultModel:   result.NewModel(),
 	}
 }

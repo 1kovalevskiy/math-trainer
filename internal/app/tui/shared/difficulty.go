@@ -25,6 +25,32 @@ func (d Difficulty) String() string {
 	}
 }
 
+func (d Difficulty) Next() Difficulty {
+	switch d {
+	case DifficultyEasy:
+		return DifficultyMedium
+	case DifficultyMedium:
+		return DifficultyHard
+	case DifficultyHard:
+		return DifficultyEasy
+	default:
+		return DifficultyEasy
+	}
+}
+
+func (d Difficulty) Prev() Difficulty {
+	switch d {
+	case DifficultyEasy:
+		return DifficultyHard
+	case DifficultyMedium:
+		return DifficultyEasy
+	case DifficultyHard:
+		return DifficultyMedium
+	default:
+		return DifficultyEasy
+	}
+}
+
 func NumbersRange(d Difficulty) (min int, max int) {
 	switch d {
 	case DifficultyEasy:

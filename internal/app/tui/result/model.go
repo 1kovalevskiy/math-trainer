@@ -10,16 +10,14 @@ const (
 	OptionHome
 )
 
-type Outcome struct {
+type Summary struct {
 	Difficulty shared.Difficulty
-	Expression string
-	Expected   int
-	Answer     int
-	Correct    bool
+	Results    []shared.ExampleResult
+	Correct    int
 }
 
 type Model struct {
-	outcome Outcome
+	summary Summary
 	cursor  int
 	options []string
 }
@@ -35,8 +33,8 @@ func NewModel() Model {
 	}
 }
 
-func (m Model) WithOutcome(outcome Outcome) Model {
-	m.outcome = outcome
+func (m Model) WithSummary(summary Summary) Model {
+	m.summary = summary
 	m.cursor = 0
 	return m
 }

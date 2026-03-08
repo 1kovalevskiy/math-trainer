@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"unicode"
 
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -18,8 +19,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch typedMsg.String() {
 		case "esc":
 			return m, emit(BackMsg{})
-		case "r":
-			return m, GenerateExerciseCmd(m.difficulty)
+		case "s":
+			return m, emit(SkipMsg{
+				Result: shared.ExampleResult{
+					Order:         m.index,
+					Expression:    m.exercise.Expression(),
+					CorrectAnswer: m.expectedAnswer(),
+					UserAnswer:    nil,
+					Status:        shared.ResultStatusSkipped,
+				},
+			})
 		case "backspace":
 			if len(m.input) > 0 {
 				m.input = m.input[:len(m.input)-1]
@@ -39,12 +48,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 
 			expected := m.expectedAnswer()
+			status := shared.ResultStatusIncorrect
+			if answer == expected {
+				status = shared.ResultStatusCorrect
+			}
+			answerCopy := answer
 			return m, emit(SubmitMsg{
-				Difficulty: m.difficulty,
-				Expression: m.exercise.Expression(),
-				Expected:   expected,
-				Answer:     answer,
-				Correct:    answer == expected,
+				Result: shared.ExampleResult{
+					Order:         m.index,
+					Expression:    m.exercise.Expression(),
+					CorrectAnswer: expected,
+					UserAnswer:    &answerCopy,
+					Status:        status,
+				},
 			})
 		default:
 			if len(typedMsg.Runes) == 1 && unicode.IsDigit(typedMsg.Runes[0]) {
