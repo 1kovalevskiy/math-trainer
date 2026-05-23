@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare version
+        id: version
+        run: |
+          version="$(date -u +'%Y%m%d%H%M')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build binaries
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          build() {
+            os="$1"
+            arch="$2"
+            ext="$3"
+            output="dist/math-trainer-${{ steps.version.outputs.version }}-${os}-${arch}${ext}"
+
+            GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build \
+              -trimpath \
+              -ldflags="-s -w" \
+              -o "$output" \
+              ./cmd
+          }
+
+          build linux amd64 ""
+          build linux arm64 ""
+          build darwin amd64 ""
+          build darwin arm64 ""
+          build windows amd64 ".exe"
+          build windows arm64 ".exe"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          target_commitish: master
+          fail_on_unmatched_files: true
+          files: dist/*
