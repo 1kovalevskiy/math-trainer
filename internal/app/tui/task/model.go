@@ -1,52 +1,36 @@
 package task
 
-import (
-	"fmt"
+import mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
-	tea "github.com/charmbracelet/bubbletea"
+const (
+	buttonSubmit = iota
+	buttonSkip
+	buttonBack
+	lastButton = buttonBack
 )
 
-type Exercise struct {
-	Left     int
-	Right    int
-	Operator string
-}
-
-func (e Exercise) Expression() string {
-	return fmt.Sprintf("%d %s %d", e.Left, e.Operator, e.Right)
-}
-
 type Model struct {
-	difficulty shared.Difficulty
-	index      int
-	total      int
-	exercise   Exercise
-	input      string
-	errText    string
+	difficulty   mathmodels.Difficulty
+	current      mathmodels.CurrentExercise
+	input        string
+	errText      string
+	buttonCursor int
 }
 
-func NewModel(difficulty shared.Difficulty, index int, total int) Model {
-	return Model{
-		difficulty: difficulty,
-		index:      index,
-		total:      total,
+func NewModel(current *mathmodels.CurrentExercise, difficulty mathmodels.Difficulty) Model {
+	model := Model{
+		difficulty:   difficulty,
+		buttonCursor: buttonSubmit,
 	}
-}
-
-func (m Model) Init() tea.Cmd {
-	return GenerateExerciseCmd(m.difficulty)
-}
-
-func (m Model) expectedAnswer() int {
-	switch m.exercise.Operator {
-	case "+":
-		return m.exercise.Left + m.exercise.Right
-	case "-":
-		return m.exercise.Left - m.exercise.Right
-	default:
-		return 0
+	if current != nil {
+		model.current = *current
 	}
+	return model
+}
+
+func (m Model) WithError(errText string) Model {
+	m.errText = errText
+	return m
 }
 
 func (m Model) canSubmit() bool {

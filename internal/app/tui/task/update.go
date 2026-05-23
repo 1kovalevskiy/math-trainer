@@ -1,7 +1,6 @@
 package task
 
 import (
-	"strconv"
 	"unicode"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
@@ -10,11 +9,6 @@ import (
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch typedMsg := msg.(type) {
-	case GeneratedMsg:
-		m.exercise = typedMsg.Exercise
-		m.input = ""
-		m.errText = ""
-		return m, nil
 	case tea.MouseMsg:
 		if !shared.IsLeftClick(typedMsg) {
 			return m, nil
@@ -22,13 +16,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		switch {
 		case shared.InZone(zoneSubmit, typedMsg):
+			m.buttonCursor = buttonSubmit
 			if !m.canSubmit() {
 				return m, nil
 			}
 			return m.submitAnswer()
 		case shared.InZone(zoneSkip, typedMsg):
+			m.buttonCursor = buttonSkip
 			return m.skipCurrent()
 		case shared.InZone(zoneBack, typedMsg):
+			m.buttonCursor = buttonBack
 			return m, emit(BackMsg{})
 		default:
 			return m, nil
@@ -38,7 +35,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "esc":
 			return m, emit(BackMsg{})
 		case "s":
+			m.buttonCursor = buttonSkip
 			return m.skipCurrent()
+		case "left", "h":
+			if m.buttonCursor > buttonSubmit {
+				m.buttonCursor--
+			}
+			return m, nil
+		case "right", "l":
+			if m.buttonCursor < lastButton {
+				m.buttonCursor++
+			}
+			return m, nil
 		case "backspace":
 			if len(m.input) > 0 {
 				m.input = m.input[:len(m.input)-1]
@@ -46,10 +54,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.errText = ""
 			return m, nil
 		case "enter":
-			if !m.canSubmit() {
-				return m, nil
-			}
-			return m.submitAnswer()
+			return m.selectCurrent()
 		default:
 			if len(typedMsg.Runes) == 1 && unicode.IsDigit(typedMsg.Runes[0]) {
 				m.input += string(typedMsg.Runes)
@@ -62,39 +67,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) submitAnswer() (Model, tea.Cmd) {
-	answer, err := strconv.Atoi(m.input)
-	if err != nil {
-		m.errText = "Ответ должен быть числом"
+func (m Model) selectCurrent() (Model, tea.Cmd) {
+	switch m.buttonCursor {
+	case buttonSubmit:
+		if !m.canSubmit() {
+			return m, nil
+		}
+		return m.submitAnswer()
+	case buttonSkip:
+		return m.skipCurrent()
+	case buttonBack:
+		return m, emit(BackMsg{})
+	default:
 		return m, nil
 	}
+}
 
-	expected := m.expectedAnswer()
-	status := shared.ResultStatusIncorrect
-	if answer == expected {
-		status = shared.ResultStatusCorrect
-	}
-	answerCopy := answer
-
-	return m, emit(SubmitMsg{
-		Result: shared.ExampleResult{
-			Order:         m.index,
-			Expression:    m.exercise.Expression(),
-			CorrectAnswer: expected,
-			UserAnswer:    &answerCopy,
-			Status:        status,
-		},
-	})
+func (m Model) submitAnswer() (Model, tea.Cmd) {
+	return m, emit(SubmitMsg{Answer: m.input})
 }
 
 func (m Model) skipCurrent() (Model, tea.Cmd) {
-	return m, emit(SkipMsg{
-		Result: shared.ExampleResult{
-			Order:         m.index,
-			Expression:    m.exercise.Expression(),
-			CorrectAnswer: m.expectedAnswer(),
-			UserAnswer:    nil,
-			Status:        shared.ResultStatusSkipped,
-		},
-	})
+	return m, emit(SkipMsg{})
 }

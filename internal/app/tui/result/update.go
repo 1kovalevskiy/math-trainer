@@ -21,11 +21,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyMsg:
 		switch typedMsg.String() {
-		case "up", "k":
+		case "left", "h":
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case "down", "j":
+		case "right", "l":
 			if m.cursor < len(m.options)-1 {
 				m.cursor++
 			}

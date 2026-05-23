@@ -12,6 +12,7 @@ import (
 
 	"github.com/1kovalevskiy/math-trainer/internal/configs"
 	mathController "github.com/1kovalevskiy/math-trainer/internal/controllers/math"
+	mathMemory "github.com/1kovalevskiy/math-trainer/internal/storages/memory/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -23,6 +24,7 @@ type closer struct {
 type App struct {
 	cfg            *config.Config
 	logger         *slog.Logger
+	mathStorage    *mathMemory.Storage
 	mathController *mathController.Controller
 	program        *tea.Program
 	closers        []closer
@@ -51,7 +53,7 @@ func InitApp(ctx context.Context) (*App, error) {
 		return nil, fmt.Errorf("init controllers: %w", err)
 	}
 
-	if err := app.initPrograms(); err != nil {
+	if err := app.initPrograms(ctx); err != nil {
 		return nil, fmt.Errorf("init programs: %w", err)
 	}
 
@@ -65,8 +67,6 @@ func (a *App) RunApp(ctx context.Context) error {
 
 	runCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
 	runErrCh := make(chan error, 1)
 	go func() {
@@ -79,17 +79,24 @@ func (a *App) RunApp(ctx context.Context) error {
 	isClosed := false
 	select {
 	case <-runCtx.Done():
-		closeErr = a.closeAll(shutdownCtx)
+		closeErr = a.closeAllWithTimeout()
 		isClosed = true
 		runErr = <-runErrCh
 	case runErr = <-runErrCh:
 	}
 
 	if !isClosed {
-		closeErr = a.closeAll(shutdownCtx)
+		closeErr = a.closeAllWithTimeout()
 	}
 
 	return errors.Join(runErr, closeErr)
+}
+
+func (a *App) closeAllWithTimeout() error {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return a.closeAll(shutdownCtx)
 }
 
 func (a *App) addCloser(name string, fn func(context.Context) error) {

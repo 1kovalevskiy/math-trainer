@@ -6,6 +6,7 @@ import (
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
+	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -22,7 +23,7 @@ func (m Model) View() string {
 
 	b.WriteString(ui.Title.Render("Результаты тренировки") + "\n")
 	b.WriteString(ui.Subtitle.Render("Сводка по всем примерам") + "\n\n")
-	b.WriteString(ui.Label.Render("Сложность: ") + ui.Value.Render(m.summary.Difficulty.String()) + "\n\n")
+	b.WriteString(ui.Label.Render("Сложность: ") + ui.Value.Render(shared.DifficultyLabel(m.summary.Settings.Difficulty)) + "\n\n")
 
 	for _, entry := range m.summary.Results {
 		b.WriteString(renderEntry(entry) + "\n")
@@ -30,11 +31,13 @@ func (m Model) View() string {
 
 	b.WriteString("\n")
 	for i, option := range m.options {
-		b.WriteString(zone.Mark(optionZoneID(i), ui.MenuItem(m.cursor == i, option)) + "\n")
+		if i > 0 {
+			b.WriteString(" ")
+		}
+		b.WriteString(zone.Mark(optionZoneID(i), ui.MenuItem(m.cursor == i, option)))
 	}
 
-	b.WriteString("\n" + ui.Accent.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, len(m.summary.Results))))
-	b.WriteString("\n" + ui.Hint.Render("↑/↓ - выбор, Enter - подтвердить"))
+	b.WriteString("\n" + ui.Accent.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, m.summary.Total)))
 
 	return b.String()
 }
@@ -43,27 +46,27 @@ func optionZoneID(index int) string {
 	return fmt.Sprintf("result:option:%d", index)
 }
 
-func renderEntry(entry shared.ExampleResult) string {
-	base := expressionStyle.Render(fmt.Sprintf("%d) %s = ", entry.Order, entry.Expression))
+func renderEntry(entry mathmodels.ExampleResult) string {
+	base := expressionStyle.Render(fmt.Sprintf("%d) %s = ", entry.Order, shared.ExerciseText(entry.Exercise)))
 
 	switch entry.Status {
-	case shared.ResultStatusCorrect:
+	case mathmodels.ResultStatusCorrect:
 		answer := 0
 		if entry.UserAnswer != nil {
 			answer = *entry.UserAnswer
 		}
 		return base + correctStyle.Render(fmt.Sprintf("%d", answer))
-	case shared.ResultStatusIncorrect:
+	case mathmodels.ResultStatusIncorrect:
 		userAnswer := "_"
 		if entry.UserAnswer != nil {
 			userAnswer = fmt.Sprintf("%d", *entry.UserAnswer)
 		}
 		return base + incorrectStyle.Render(userAnswer) +
 			fmt.Sprintf(" (ответ: %d)", entry.CorrectAnswer)
-	case shared.ResultStatusSkipped:
+	case mathmodels.ResultStatusSkipped:
 		return base + skippedStyle.Render("____") +
 			fmt.Sprintf(" (ответ: %d)", entry.CorrectAnswer)
 	default:
-		return fmt.Sprintf("%d) %s", entry.Order, entry.Expression)
+		return fmt.Sprintf("%d) %s", entry.Order, shared.ExerciseText(entry.Exercise))
 	}
 }

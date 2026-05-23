@@ -14,11 +14,12 @@ func (m Model) View() string {
 	b.WriteString(ui.Title.Render("Математический тренажер") + "\n")
 	b.WriteString(ui.Subtitle.Render("Тренировка устного счета") + "\n\n")
 	for i, option := range m.options {
+		if i > 0 {
+			b.WriteString("\n")
+		}
 		button := ui.MenuItem(m.cursor == i, option)
 		b.WriteString(zone.Mark(optionZoneID(i), button) + "\n")
 	}
-
-	b.WriteString("\n" + ui.Hint.Render("↑/↓ - выбор, Enter - подтвердить, Ctrl+C - выход"))
 
 	return b.String()
 }

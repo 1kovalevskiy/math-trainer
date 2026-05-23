@@ -22,7 +22,7 @@ func (m Model) View() string {
 	}
 
 	if m.width <= 0 || m.height <= 0 {
-		return zone.Scan(ui.Panel.Render(content))
+		return zone.Scan(ui.Panel.Render(centerBlock(content, ui.MinPanelContentWidth)))
 	}
 
 	panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
@@ -33,6 +33,8 @@ func (m Model) View() string {
 	if panelHeight < 1 {
 		panelHeight = 1
 	}
+
+	content = renderScreenContent(content, screenHints(m.screen), panelWidth, panelHeight)
 
 	return zone.Scan(ui.Panel.Width(panelWidth).Height(panelHeight).Render(content))
 }

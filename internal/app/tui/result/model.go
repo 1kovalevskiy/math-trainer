@@ -1,6 +1,6 @@
 package result
 
-import "github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+import mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 
 type Option int
 
@@ -10,14 +10,8 @@ const (
 	OptionHome
 )
 
-type Summary struct {
-	Difficulty shared.Difficulty
-	Results    []shared.ExampleResult
-	Correct    int
-}
-
 type Model struct {
-	summary Summary
+	summary mathmodels.TrainingSummary
 	cursor  int
 	options []string
 }
@@ -33,8 +27,10 @@ func NewModel() Model {
 	}
 }
 
-func (m Model) WithSummary(summary Summary) Model {
-	m.summary = summary
+func (m Model) WithSummary(summary *mathmodels.TrainingSummary) Model {
+	if summary != nil {
+		m.summary = *summary
+	}
 	m.cursor = 0
 	return m
 }

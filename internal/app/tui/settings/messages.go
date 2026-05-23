@@ -1,9 +1,9 @@
 package settings
 
-import "github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+import mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 
 type ApplySettingsMsg struct {
-	Settings shared.TrainingSettings
+	Settings mathmodels.TrainingSettings
 }
 
 type BackMsg struct{}

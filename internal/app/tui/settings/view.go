@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -29,7 +30,7 @@ func (m Model) View() string {
 			fmt.Sprintf(
 				"%s %s %s",
 				zone.Mark(zoneDifficultyPrev, ui.SmallButton("←", m.cursor == rowDifficulty)),
-				ui.Value.Render(m.settings.Difficulty.String()),
+				ui.Value.Render(shared.DifficultyLabel(m.settings.Difficulty)),
 				zone.Mark(zoneDifficultyNext, ui.SmallButton("→", m.cursor == rowDifficulty)),
 			),
 		) + "\n",
@@ -46,11 +47,9 @@ func (m Model) View() string {
 			),
 		) + "\n\n",
 	)
-	b.WriteString(zone.Mark(zoneApply, ui.Button("Применить", m.cursor == rowApply)) + "\n")
-	b.WriteString(zone.Mark(zoneBack, ui.Button("Назад", m.cursor == rowBack)) + "\n")
-	b.WriteString("\n" + ui.Hint.Render("↑/↓ - выбор пункта"))
-	b.WriteString("\n" + ui.Hint.Render("←/→ - изменить значение"))
-	b.WriteString("\n" + ui.Hint.Render("Enter - подтвердить, Esc - назад, Click - мышь"))
+	b.WriteString(zone.Mark(zoneApply, ui.Button("Применить", m.cursor == rowApply)))
+	b.WriteString(" ")
+	b.WriteString(zone.Mark(zoneBack, ui.Button("Назад", m.cursor == rowBack)))
 
 	return b.String()
 }

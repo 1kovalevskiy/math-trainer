@@ -2,6 +2,8 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
+const MinPanelContentWidth = 28
+
 var (
 	Panel = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -13,7 +15,7 @@ var (
 		Bold(true).
 		Foreground(lipgloss.Color("230")).
 		Background(lipgloss.Color("62")).
-		Padding(0, 1)
+		Padding(0, 2)
 
 	Subtitle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("117"))

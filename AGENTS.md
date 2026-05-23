@@ -1,166 +1,207 @@
 # Руководство по репозиторию math-trainer
 
 ## 1. Назначение проекта
-`math-trainer` — TUI-приложение для тренировки математики у детей.
+`math-trainer` — одноразовое TUI-приложение для тренировки устного счета у детей.
 
 Технологический стек:
-- Go;
-- Bubble Tea (Charm).
+- Go 1.25;
+- Bubble Tea;
+- Lip Gloss;
+- bubblezone для mouse hit-zones;
+- cleanenv + godotenv для конфигурации;
+- slog для структурированного логирования.
 
-## 2. Актуальная структура
-- `cmd/main.go` — минимальная точка входа (`context`, `InitApp`, `RunApp`).
-- `cmd/app` — композиция приложения и управление жизненным циклом.
-- `internal/app` — UI-слой на Bubble Tea:
-  - `Model`, `Init`, `Update`, `View`;
-  - сообщения (`tea.Msg`);
-  - команды (`tea.Cmd`) для длительных операций;
-  - экраны и навигация.
-- `internal/controllers` — orchestration и бизнес-логика без зависимостей на Bubble Tea.
-- `internal/models` — доменные модели и value-типы.
-- `internal/providers` — абстракции/адаптеры внешних сервисов.
-- `internal/storages` — абстракции/адаптеры хранилищ и БД.
-- `internal/config` — загрузка и валидация конфига из YAML и ENV.
+Ключевое продуктовое решение: приложение рассчитано на одну TUI-сессию. После закрытия приложения состояние тренировки очищается, потому что storage in-memory.
 
-## 3. Архитектурные принципы
+## 2. Текущая структура
+- `cmd/main.go` — минимальная точка входа: создает `context.Background()`, вызывает `app.InitApp`, затем `RunApp`; `panic` допустим только здесь.
+- `cmd/app` — composition root и жизненный цикл:
+  - `app.go` — `App`, `InitApp`, `RunApp`, centralized closers;
+  - `config.go` — загрузка конфига;
+  - `logger.go` — настройка `slog`;
+  - `providers.go` — явный, но пока пустой шаг providers;
+  - `storages.go` — создание `mathMemory.Storage`;
+  - `controllers.go` — создание `mathController.Controller`;
+  - `programs.go` — создание Bubble Tea program и bubblezone.
+- `internal/configs` — пакет `config`; сейчас есть только `App.LogLevel`, `APP_CONFIG_PATH`, `APP_LOG_LEVEL`, автозагрузка `.env`.
+- `internal/models/math` — доменные модели, enum/value-типы и доменные ошибки. Файлы разделены по сущностям: `exercise.go`, `training_state.go`, `training_snapshot.go`, `training_settings.go`, `example_result.go`, enum-файлы, `errors.go`.
+- `internal/storages/memory/math` — in-memory storage состояния одной тренировки:
+  - публичные операции: `GetState`, `SaveState`, `ClearState`, `CloseStorage`;
+  - storage потокобезопасен через `sync.RWMutex`;
+  - при чтении/записи клонирует state/results, чтобы не отдавать наружу mutable aliases;
+  - `CloseStorage` очищает state.
+- `internal/controllers/math` — orchestration и вся математика:
+  - владеет контрактом `trainingStorage`;
+  - синхронный API для TUI: `GetDefaultSettings`, `NormalizeSettings`, `StartTraining`, `SubmitAnswer`, `SkipCurrent`, `CancelTraining`, difficulty navigation;
+  - генерация примеров, проверка ответа, сбор результатов и snapshot/summary находятся здесь;
+  - тестовая инъекция генератора идет через `WithExerciseGenerator`.
+- `internal/app/tui` — Bubble Tea UI:
+  - root `Model` хранит текущий экран, размеры окна, настройки и submodels;
+  - subpackages `start`, `settings`, `task`, `result` отвечают за локальное состояние экрана, `Update`, `View`, typed messages;
+  - `commands.go` вызывает контроллер из `tea.Cmd` и возвращает typed messages;
+  - `layout.go` центрирует контент и держит подсказки на фиксированной высоте от низа;
+  - `ui/theme.go` содержит общие стили;
+  - `shared` содержит только UI-format helpers и mouse helpers.
 
-### 3.1 Композиция только в `cmd/app`
-- Wiring зависимостей делается только в `cmd/app`.
-- Бизнес-логика не должна попадать в `cmd`.
-- Новые подсистемы подключаются через явные `init*`-шаги.
+## 3. Направление зависимостей
+Разрешенное направление зависимостей:
 
-### 3.2 Явный жизненный цикл ресурсов
-- Все закрываемые ресурсы регистрируются централизованно (`addCloser(name, fn)`).
-- Завершение выполняется единообразно (`closeAll()`):
-  - в обратном порядке инициализации (LIFO);
-  - с агрегацией ошибок через `errors.Join`;
-  - с логированием каждого шага.
-- Точечное закрытие ресурсов в случайных местах не допускается.
+`cmd/app -> internal/app/tui -> internal/controllers/math -> (internal/models/math, internal/storages contracts)`
 
-### 3.3 Контракты между слоями
-- Разрешенное направление зависимостей:
-  - `internal/app -> internal/controllers -> (internal/models, internal/providers, internal/storages)`.
-- Контроллеры работают через интерфейсы, а не через конкретные инфраструктурные реализации.
-- `internal/storages` и `internal/providers` не зависят от Bubble Tea.
-- Циклические импорты между слоями запрещены.
+Фактически:
+- `cmd/app` знает конкретные implementations (`mathmemory.Storage`, `mathcontroller.Controller`) и собирает приложение.
+- `internal/app/tui` знает только интерфейс `mathController`, объявленный в `internal/app/tui/controller.go`.
+- `internal/controllers/math` зависит от доменных моделей и от локального интерфейса `trainingStorage`, но не от конкретного memory storage.
+- `internal/storages/memory/math` зависит только от `internal/models/math`.
+- `internal/models/math` не зависит от UI, storage, controller, Bubble Tea или SDK.
 
-### 3.4 Правила Bubble Tea (`internal/app`)
-- `Update` должен быть быстрым и неблокирующим.
-- Любой I/O, сеть, БД и долгие вычисления выносятся в `tea.Cmd`.
-- Результат `tea.Cmd` возвращается только через типизированный `tea.Msg`.
-- `View` не выполняет сайд-эффекты и только рендерит состояние.
-- Бизнес-правила находятся в контроллерах, а не в `Update`/`View`.
-- `internal/app` не ходит в storages/providers напрямую.
+Запрещено:
+- ходить из TUI напрямую в storage/provider;
+- импортировать Bubble Tea в controller/storage/models;
+- хранить бизнес-правила в `View` или screen `Update`;
+- делать wiring вне `cmd/app`;
+- создавать циклические импорты между слоями.
 
-## 4. Порядок инициализации приложения
-`InitApp` должен выполнять bootstrap строго по этапам:
+## 4. Принятые архитектурные решения
+- Состояние тренировки хранится не в TUI model, а в in-memory storage.
+- Доступ к storage есть только у controller через интерфейс.
+- TUI держит только UI-состояние: текущий экран, ввод, курсоры кнопок, размеры окна, последнее отображаемое состояние.
+- Controller остается синхронным. Асинхронность Bubble Tea организуется только в `internal/app/tui/commands.go`.
+- Все решенные/пропущенные примеры текущей сессии лежат в `TrainingState.Results`.
+- Следующий пример генерируется через `generateUnused`: controller сравнивает новый `Exercise` с уже использованными `Exercise` из `Results`.
+- Повтор определяется полной структурой `Exercise`: `Left`, `Right`, `Operator`.
+- Если уникальный пример не найден за `maxUniqueExerciseAttempts`, возвращается `ErrUniqueExerciseExhausted`.
+- При закрытии приложения storage очищается; персистентность специально не нужна.
 
-1. конфиг;
-2. логирование;
+## 5. Инициализация и shutdown
+`InitApp` идет строго по шагам:
+1. config;
+2. logger;
 3. providers;
 4. storages;
 5. controllers;
-6. Bubble Tea model/program;
-7. регистрация closers для закрываемых ресурсов.
+6. Bubble Tea program.
 
-Правила расширения:
-- новый шаг добавляется явно в цепочку `InitApp`;
-- каждый шаг возвращает `error`;
-- panic допустим только на самом верхнем уровне старта приложения;
-- ресурсы шага, требующие остановки, регистрируются в `closers`.
-- для тестируемости допускается `opts`-структура с инъекцией зависимостей
-  (конфиг/клиенты/storages/controllers), чтобы unit/smoke-тесты не поднимали внешнюю инфраструктуру.
+Правила:
+- новый инфраструктурный шаг добавлять явно в цепочку `InitApp`;
+- каждый `init*` возвращает `error`;
+- closers регистрировать через `addCloser(name, fn)`;
+- закрытие идет LIFO через `closeAll`;
+- ошибки закрытия агрегируются через `errors.Join`;
+- `RunApp` использует `signal.NotifyContext`;
+- shutdown context создается непосредственно перед `closeAllWithTimeout`, а не переиспользует уже отмененный run context.
 
-## 5. Запуск и graceful shutdown
-- `RunApp` использует `signal.NotifyContext`.
-- При завершении:
-  - останавливаются фоновые процессы;
-  - вызывается централизованное закрытие ресурсов;
-  - дожидаемся завершения всех служебных goroutine (если они есть).
-- Логика завершения должна быть детерминированной и идемпотентной.
-- Для фоновых воркеров/долгих задач в рантайме использовать общий канал ошибок с
-  неблокирующей отправкой и централизованной обработкой на уровне `RunApp`.
+Сейчас closers регистрируются для:
+- `math_memory_storage`;
+- `bubblezone`;
+- `bubbletea_program`.
 
-## 6. Конфигурация (`internal/config`)
-- Основной источник: YAML-файл.
-- ENV-переменные переопределяют YAML.
-- `.env` может быть загружен автоматически для локальной разработки.
-- На каждый новый параметр:
-  - добавить теги (`yaml`, `env`, при необходимости `env-default`);
-  - добавить getter-метод в конфиг;
-  - при необходимости добавить валидацию.
-- В остальных пакетах использовать getter-API, а не прямой доступ к полям структуры.
-- Длительности (timeouts/retries) валидируются и парсятся централизованно.
+## 6. Правила для моделей
+- Пакет `internal/models/math` содержит только доменные типы и ошибки.
+- Новую доменную сущность добавлять отдельным файлом по имени сущности.
+- Enum/value-типы держать в отдельных файлах с безопасным `String()` fallback на `"unknown"`.
+- Ошибки держать в `errors.go`.
+- Не добавлять методы, завязанные на отображение, текст UI или Bubble Tea.
 
-## 7. Модели (`internal/models`)
-- Только доменные сущности и value-типы.
-- Никаких зависимостей от UI и инфраструктурных SDK.
-- Для enum/value-типов:
-  - фиксированный набор констант;
-  - `String()` с безопасным fallback-значением.
-- Доменные ошибки допустимо хранить в `internal/models/errors.go`.
+## 7. Правила для controller
+- Controller — место для всей математики и orchestration.
+- Публичные операции с логикой держать в отдельных файлах в стиле `entity_action.go`, метод называть `ActionEntity`:
+  - `training_start.go` -> `StartTraining`;
+  - `answer_submit.go` -> `SubmitAnswer`;
+  - `current_skip.go` -> `SkipCurrent`;
+  - `settings_normalize.go` -> `NormalizeSettings`;
+  - `difficulty_get_next.go` -> `GetNextDifficulty`.
+- Интерфейсы зависимостей объявлять рядом с использованием, сейчас это `trainingStorage` в `controller.go`.
+- `context.Context` передавать сверху вниз, не заменять на `context.Background()` внутри бизнес-операций.
+- Ошибки оборачивать через `%w` с контекстом операции.
+- Для тестов использовать stub генератор через `WithExerciseGenerator`, а не управлять random напрямую.
+- При изменении генерации примеров обязательно проверять сценарии повторов и исчерпания уникальных вариантов.
 
-## 8. Контроллеры (`internal/controllers`)
-- Контроллер — orchestration-слой со всей логикой, который объединяет providers/storages.
-- Интерфейсы зависимостей объявляются в контроллере рядом с использованием.
-- В контроллерах не импортируются Bubble Tea типы.
-- `context.Context` передается сверху вниз без подмены на `context.Background()`.
-- Ошибки оборачиваются через `%w` с понятным контекстом операции.
-- Для неблокирующих фич UI асинхронность организуется в `internal/app` через `tea.Cmd`,
-  а контроллер остается синхронным по контракту.
+## 8. Правила для storage
+- Memory storage является адаптером инфраструктуры, а не местом бизнес-логики.
+- Публичные методы держать по отдельным файлам в стиле `state_get.go` -> `GetState`.
+- Методы принимают `context.Context` и сначала проверяют `ctx.Err()`.
+- `nil` receiver должен обрабатываться безопасно там, где это уже принято.
+- `GetState` возвращает `ErrNoActiveTraining`, если state еще не создан или очищен.
+- `SaveState` и `GetState` должны клонировать mutable данные.
+- `CloseStorage` должен быть idempotent по смыслу и очищать in-memory state.
 
-## 9. Providers и Storages
+## 9. Правила Bubble Tea / TUI
+- `Update` должен быть быстрым и неблокирующим.
+- Вызовы controller, I/O и долгие операции выполнять только через `tea.Cmd`.
+- `tea.Cmd` возвращает только typed `tea.Msg`.
+- `View` только рендерит состояние; сайд-эффекты запрещены.
+- Root `internal/app/tui/Model` маршрутизирует сообщения между экранами и запускает commands.
+- Screen submodels (`start`, `settings`, `task`, `result`) не должны знать storage.
+- Screen submodels могут эмитить только свои typed messages, а root решает, что делать дальше.
+- Форматирование доменных значений для UI держать в `internal/app/tui/shared/format.go`, не в models/controller.
+- Для mouse support использовать `zone.Mark` во `View` и `shared.InZone` в `Update`.
+- Любой новый экран должен иметь:
+  - `model.go`;
+  - `update.go`;
+  - `view.go`;
+  - `messages.go`;
+  - `commands.go`, если экран эмитит команды.
 
-### 9.1 Общие требования
-- Конструкторы валидируют конфиг и критичные параметры.
-- После создания клиента выполняется проверка доступности (`Ping`/probe).
-- `Close()` должен быть nil-safe.
-- Каждая операция должна работать в контексте с timeout.
+Текущие UX-решения:
+- весь экранный контент центрируется через `renderScreenContent`;
+- подсказки находятся на стабильной высоте от низа;
+- слишком высокий контент сжимается через `fitBlock` с маркером пропущенных строк;
+- стартовый экран: кнопки вертикально, с разрывом между ними;
+- settings/task/result: action buttons расположены горизонтально;
+- горизонтальные кнопки выбираются `←/→`; для совместимости местами поддержаны `↑/↓`;
+- `Ctrl+C` завершает приложение глобально.
 
-### 9.2 Storages
-- Структура: общий клиент драйвера + предметные адаптеры в подпакетах.
-- Контроллер зависит от интерфейса предметного адаптера, а не от деталей SQL/SDK.
-- Для транзакционных хранилищ использовать callback API:
-  - `WithWriteTx`;
-  - `WithReadTx`;
-  - `WithWriteNoTx`;
-  - `WithReadNoTx`.
-- Callback не должен быть `nil`.
-- Ошибки rollback/close/join не теряются и агрегируются.
-
-### 9.3 Providers
-- Для внешних API повторяются те же принципы: интерфейс, timeout, health-check, nil-safe close.
-- Ретраи, backoff и идемпотентность должны быть явными в коде и конфиге.
-
-## 10. Логирование и ошибки
-- Логирование только структурированное (`slog`).
-- Уровень логирования задается конфигом.
-- Ошибки поднимаются вверх по слоям с `%w`.
-- Внутри бизнес-слоев избегать `panic`; возвращать ошибку вызывающему коду.
+## 10. Конфигурация и логирование
+- Основной путь к YAML: `APP_CONFIG_PATH`.
+- ENV переопределяет YAML через cleanenv.
+- `.env` загружается автоматически в `internal/configs`.
+- Сейчас поддержан только `APP_LOG_LEVEL`, значения: `DEBUG`, `INFO`, `WARN`/`WARNING`, `ERROR`.
+- В коде вне `internal/configs` и `cmd/app` не читать ENV напрямую без причины.
+- Логирование только структурированное через `slog`.
 
 ## 11. Тестирование
-- Контроллеры: unit-тесты на orchestrations и обработку ошибок с моками/stub интерфейсов.
-- Storages/providers:
-  - валидация конструктора (nil config, пустые URI/DSN);
-  - обработка таймаутов;
-  - корректное закрытие;
-  - негативные пути.
-- `internal/app` (Bubble Tea):
-  - тесты переходов состояния по `tea.Msg`;
-  - тесты результатов `tea.Cmd` (успех/ошибка/таймаут);
-  - проверка, что `Update` не блокируется.
-- `cmd/app`: smoke-тест bootstrap и корректного shutdown цепочки.
-- Unit-тесты не должны требовать реальных сетевых/БД подключений.
+Базовая проверка:
 
-## 12. Стандарты кода
-- Форматирование: `gofmt`.
-- Имена пакетов: короткие, строчные, без underscore.
-- Интерфейсы объявлять ближе к месту использования.
-- Функции держать небольшими и с ясной ответственностью.
-- Избегать глобального состояния для бизнес-данных и UI-состояния.
+```bash
+go test ./...
+```
 
-## 13. Рекомендуемый workflow для новой фичи
-1. Добавить/расширить доменную модель в `internal/models`.
-2. Добавить контракт в контроллере и реализацию в `providers`/`storages`.
-3. Реализовать orchestration в `internal/controllers`.
-4. Подключить вызов в `internal/app` через `tea.Cmd` + `tea.Msg`.
-5. Добавить тесты слоев (controller/storage/app) и smoke-проверку запуска.
+Если sandbox блокирует стандартный Go cache, использовать:
+
+```bash
+GOCACHE=/private/tmp/math-trainer-go-cache go test ./...
+```
+
+Что тестировать при изменениях:
+- controller: orchestration, ошибки, state transitions, генерация без повторов;
+- storage: clone semantics, пустое состояние, clear/close, context cancellation;
+- TUI submodels: переходы по `tea.Msg`, keyboard/mouse navigation, emitted commands;
+- layout: высота, центрирование, стабильная позиция подсказок, обрезка tall content.
+
+Unit-тесты не должны требовать реальных сетей, БД или внешних сервисов.
+
+## 12. Стиль кода
+- Всегда запускать `gofmt` на измененных Go-файлах.
+- Имена пакетов короткие, строчные, без underscore.
+- В этом репозитории есть важные package aliases:
+  - `internal/configs` использует `package config`;
+  - `internal/controllers/math` использует `package mathcontroller`;
+  - `internal/storages/memory/math` использует `package mathmemory`;
+  - `internal/models/math` использует `package math`.
+- Не складывать несколько публичных методов с логикой в один файл.
+- Комментарии добавлять только там, где они реально объясняют неочевидное решение.
+- Не делать unrelated refactor вместе с фичей.
+- Не откатывать чужие незакоммиченные изменения.
+
+## 13. Workflow новой фичи
+1. Понять, на каком слое должна жить логика.
+2. Если меняется домен, добавить/расширить модель в `internal/models/math`.
+3. Сначала добавить тест на нужное поведение, обычно в controller/storage/TUI subpackage.
+4. Реализовать orchestration в `internal/controllers/math`.
+5. Если нужно состояние, добавить контракт controller и реализацию adapter в storage.
+6. Подключить TUI через `tea.Cmd` + typed `tea.Msg`.
+7. Обновить layout/navigation tests, если изменился UI.
+8. Запустить `gofmt` и `go test ./...`.
+
+Главное правило: математика и бизнес-решения остаются в controller/model/storage слоях, а `internal/app/tui` отвечает только за отображение, ввод и навигацию.

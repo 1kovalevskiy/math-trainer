@@ -1,11 +1,14 @@
 package tui
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/result"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/settings"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/start"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/task"
+	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -19,7 +22,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case start.OpenSettingsMsg:
-		m.settingsModel = settings.NewModel(m.settings)
+		m.settingsModel = settings.NewModel(m.settings, m.mathController)
 		m.screen = ScreenSettings
 		return m, nil
 	case start.OpenTaskMsg:
@@ -27,29 +30,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case start.QuitMsg:
 		return m, tea.Quit
 	case settings.ApplySettingsMsg:
-		m.settings = typedMsg.Settings
+		m.settings = m.mathController.NormalizeSettings(typedMsg.Settings)
 		m.screen = ScreenStart
 		return m, nil
 	case settings.BackMsg:
 		m.screen = ScreenStart
 		return m, nil
 	case task.SubmitMsg:
-		m.session.results = append(m.session.results, typedMsg.Result)
-		return m.nextExerciseOrFinish()
+		return m, submitAnswerCmd(m.ctx, m.mathController, typedMsg.Answer)
 	case task.SkipMsg:
-		m.session.results = append(m.session.results, typedMsg.Result)
-		return m.nextExerciseOrFinish()
+		return m, skipCurrentCmd(m.ctx, m.mathController)
 	case task.BackMsg:
 		m.screen = ScreenStart
-		return m, nil
+		return m, cancelTrainingCmd(m.ctx, m.mathController)
 	case result.RetryTaskMsg:
 		return m.startTraining()
 	case result.OpenSettingsMsg:
-		m.settingsModel = settings.NewModel(m.settings)
+		m.settingsModel = settings.NewModel(m.settings, m.mathController)
 		m.screen = ScreenSettings
 		return m, nil
 	case result.BackToStartMsg:
 		m.screen = ScreenStart
+		return m, nil
+	case trainingSnapshotMsg:
+		if typedMsg.err != nil {
+			m.taskModel = m.taskModel.WithError(errorText(typedMsg.err))
+			return m, nil
+		}
+		return m.applySnapshot(typedMsg.snapshot), nil
+	case cancelTrainingMsg:
 		return m, nil
 	}
 
@@ -69,43 +78,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) startTraining() (Model, tea.Cmd) {
-	total := shared.NormalizeExamplesCount(m.settings.ExamplesCount)
-	m.settings.ExamplesCount = total
-	m.session = trainingSession{
-		total:   total,
-		results: make([]shared.ExampleResult, 0, total),
-	}
-	m.taskModel = task.NewModel(m.settings.Difficulty, 1, total)
-	m.screen = ScreenTask
-
-	return m, m.taskModel.Init()
+	return m, startTrainingCmd(m.ctx, m.mathController, m.settings)
 }
 
-func (m Model) nextExerciseOrFinish() (Model, tea.Cmd) {
-	if len(m.session.results) >= m.session.total {
-		m.resultModel = result.NewModel().WithSummary(result.Summary{
-			Difficulty: m.settings.Difficulty,
-			Results:    m.session.results,
-			Correct:    countCorrect(m.session.results),
-		})
+func (m Model) applySnapshot(snapshot mathmodels.TrainingSnapshot) Model {
+	m.settings = snapshot.Settings
+
+	switch snapshot.Phase {
+	case mathmodels.TrainingPhaseInProgress:
+		m.taskModel = task.NewModel(snapshot.Current, snapshot.Settings.Difficulty)
+		m.screen = ScreenTask
+	case mathmodels.TrainingPhaseFinished:
+		m.resultModel = result.NewModel().WithSummary(snapshot.Summary)
 		m.screen = ScreenResult
-		return m, nil
+	default:
+		m.screen = ScreenStart
 	}
 
-	nextOrder := len(m.session.results) + 1
-	m.taskModel = task.NewModel(m.settings.Difficulty, nextOrder, m.session.total)
-	m.screen = ScreenTask
-
-	return m, m.taskModel.Init()
+	return m
 }
 
-func countCorrect(results []shared.ExampleResult) int {
-	total := 0
-	for _, entry := range results {
-		if entry.Status == shared.ResultStatusCorrect {
-			total++
-		}
+func errorText(err error) string {
+	if errors.Is(err, mathmodels.ErrInvalidAnswer) {
+		return "Ответ должен быть числом"
 	}
 
-	return total
+	return fmt.Sprintf("%v", err)
 }

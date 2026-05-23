@@ -1,20 +1,23 @@
 package tui
 
 import (
+	"context"
+
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/result"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/settings"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/start"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/task"
+	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type Model struct {
-	screen   Screen
-	settings shared.TrainingSettings
-	width    int
-	height   int
-	session  trainingSession
+	ctx            context.Context
+	mathController mathController
+	screen         Screen
+	settings       mathmodels.TrainingSettings
+	width          int
+	height         int
 
 	startModel    start.Model
 	settingsModel settings.Model
@@ -22,22 +25,24 @@ type Model struct {
 	resultModel   result.Model
 }
 
-type trainingSession struct {
-	total   int
-	results []shared.ExampleResult
-}
-
-func NewModel() Model {
-	defaultSettings := shared.DefaultTrainingSettings()
+func NewModel(ctx context.Context, mathController mathController) Model {
+	defaultSettings := mathmodels.TrainingSettings{
+		Difficulty:    mathmodels.DifficultyEasy,
+		ExamplesCount: mathmodels.DefaultExamplesCount,
+	}
+	if mathController != nil {
+		defaultSettings = mathController.GetDefaultSettings()
+	}
 
 	return Model{
-		screen:        ScreenStart,
-		settings:      defaultSettings,
-		session:       trainingSession{total: defaultSettings.ExamplesCount},
-		startModel:    start.NewModel(),
-		settingsModel: settings.NewModel(defaultSettings),
-		taskModel:     task.NewModel(defaultSettings.Difficulty, 1, defaultSettings.ExamplesCount),
-		resultModel:   result.NewModel(),
+		ctx:            ctx,
+		mathController: mathController,
+		screen:         ScreenStart,
+		settings:       defaultSettings,
+		startModel:     start.NewModel(),
+		settingsModel:  settings.NewModel(defaultSettings, mathController),
+		taskModel:      task.NewModel(nil, defaultSettings.Difficulty),
+		resultModel:    result.NewModel(),
 	}
 }
 
