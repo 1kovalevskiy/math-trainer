@@ -4,6 +4,7 @@ import (
 	"unicode"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -38,14 +39,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.buttonCursor = buttonSkip
 			return m.skipCurrent()
 		case "left", "h":
-			if m.buttonCursor > buttonSubmit {
-				m.buttonCursor--
-			}
+			m.buttonCursor = ui.MoveIndex(m.buttonCursor, -1, buttonSubmit, lastButton)
 			return m, nil
 		case "right", "l":
-			if m.buttonCursor < lastButton {
-				m.buttonCursor++
-			}
+			m.buttonCursor = ui.MoveIndex(m.buttonCursor, 1, buttonSubmit, lastButton)
 			return m, nil
 		case "backspace":
 			if len(m.input) > 0 {

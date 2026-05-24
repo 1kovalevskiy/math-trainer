@@ -2,6 +2,7 @@ package settings
 
 import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -48,9 +49,7 @@ func (m Model) moveCursorUp() Model {
 		m.cursor = rowExamplesCount
 		return m
 	}
-	if m.cursor > rowAddDifficulty {
-		m.cursor--
-	}
+	m.cursor = ui.MoveIndex(m.cursor, -1, rowAddDifficulty, rowExamplesCount)
 
 	return m
 }
@@ -60,9 +59,10 @@ func (m Model) moveCursorDown() Model {
 		m.cursor = rowApply
 		return m
 	}
-	if m.cursor < rowExamplesCount {
-		m.cursor++
+	if m.cursor == rowApply || m.cursor == rowBack {
+		return m
 	}
+	m.cursor = ui.MoveIndex(m.cursor, 1, rowAddDifficulty, rowExamplesCount)
 
 	return m
 }

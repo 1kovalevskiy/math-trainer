@@ -2,6 +2,7 @@ package result
 
 import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -34,13 +35,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.refreshScrollBounds()
 		switch typedMsg.String() {
 		case "left", "h":
-			if m.cursor > 0 {
-				m.cursor--
-			}
+			m.cursor = ui.MoveIndex(m.cursor, -1, 0, len(m.options)-1)
 		case "right", "l":
-			if m.cursor < len(m.options)-1 {
-				m.cursor++
-			}
+			m.cursor = ui.MoveIndex(m.cursor, 1, 0, len(m.options)-1)
 		case "up", "k":
 			m.scrollOffset--
 			m.clampScroll()
@@ -66,10 +63,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) pageSize() int {
-	if m.lastViewportHeight <= 1 {
-		return 1
-	}
-	return m.lastViewportHeight - 1
+	return ui.ScrollState{ViewportRows: m.lastViewportHeight}.PageSize()
 }
 
 func (m Model) selectCurrent() tea.Cmd {

@@ -2,7 +2,6 @@ package result
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
@@ -89,56 +88,30 @@ func (m Model) renderResultsBlock(width int, viewportHeight int) string {
 		entryWidth = max(entryWidth, lipgloss.Width(entry))
 	}
 
-	columns, rows, contentRows, showScrollbar, contentWidth := m.layoutParams(width, viewportHeight, len(entries), entryWidth)
-	offset := clamp(m.scrollOffset, 0, max(0, contentRows-viewportHeight))
+	layout := m.gridLayout(width, viewportHeight, len(entries), entryWidth)
+	offset := ui.ScrollState{
+		Offset:       m.scrollOffset,
+		ViewportRows: viewportHeight,
+		ContentRows:  layout.ContentRows,
+	}.ClampOffset(m.scrollOffset)
 
-	rowLines := m.renderGridRows(entries, columns, rows, entryWidth, contentWidth)
+	rowLines := m.renderGridRows(entries, layout.Columns, layout.Rows, entryWidth, layout.ContentWidth)
 	visible := cropRows(rowLines, offset, viewportHeight)
 
-	if showScrollbar {
-		visible = addVerticalScrollbar(visible, contentWidth, viewportHeight, offset, contentRows)
+	if layout.ShowScrollbar {
+		visible = addVerticalScrollbar(visible, layout.ContentWidth, viewportHeight, offset, layout.ContentRows)
 	}
 
 	return strings.Join(fillLines(visible, viewportHeight), "\n")
 }
 
-func (m Model) layoutParams(width int, viewportHeight int, total int, entryWidth int) (int, int, int, bool, int) {
-	if viewportHeight < 1 {
-		viewportHeight = 1
-	}
-	columnGap := 3
-	columns := maxColumnsForWidth(width, entryWidth, columnGap)
-	if columns > maxResultColumns {
-		columns = maxResultColumns
-	}
-	if columns < 1 {
-		columns = 1
-	}
-
-	rows := int(math.Ceil(float64(total) / float64(columns)))
-	if rows <= viewportHeight {
-		contentWidth := columns*entryWidth + (columns-1)*columnGap
-		return columns, rows, rows, false, contentWidth
-	}
-
-	contentWidth := columns*entryWidth + (columns-1)*columnGap
-	if width >= 2 {
-		available := width - 2
-		adjustedColumns := maxColumnsForWidth(available, entryWidth, columnGap)
-		if adjustedColumns > maxResultColumns {
-			adjustedColumns = maxResultColumns
-		}
-		if adjustedColumns < 1 {
-			adjustedColumns = 1
-		}
-		if adjustedColumns < columns {
-			columns = adjustedColumns
-			rows = int(math.Ceil(float64(total) / float64(columns)))
-			contentWidth = columns*entryWidth + (columns-1)*columnGap
-		}
-	}
-
-	return columns, rows, rows, true, contentWidth
+func (m Model) gridLayout(width int, viewportHeight int, total int, entryWidth int) ui.GridLayout {
+	return ui.BuildGridLayout(width, viewportHeight, total, entryWidth, ui.GridOptions{
+		MaxColumns:       maxResultColumns,
+		PreferredColumns: maxResultColumns,
+		ColumnGap:        3,
+		ScrollbarWidth:   2,
+	})
 }
 
 func (m Model) renderGridRows(entries []string, columns int, rows int, entryWidth int, contentWidth int) []string {
@@ -161,14 +134,11 @@ func (m Model) renderGridRows(entries []string, columns int, rows int, entryWidt
 }
 
 func (m Model) renderActionButtons() string {
-	var b strings.Builder
+	buttons := make([]string, 0, len(m.options))
 	for i, option := range m.options {
-		if i > 0 {
-			b.WriteString(" ")
-		}
-		b.WriteString(zone.Mark(optionZoneID(i), ui.MenuItem(m.cursor == i, option)))
+		buttons = append(buttons, zone.Mark(optionZoneID(i), ui.MenuItem(m.cursor == i, option)))
 	}
-	return b.String()
+	return ui.JoinInline(buttons, 1)
 }
 
 func optionZoneID(index int) string {
@@ -210,13 +180,6 @@ func renderEntry(entry mathmodels.ExampleResult) string {
 	}
 }
 
-func maxColumnsForWidth(width int, entryWidth int, gap int) int {
-	if width < entryWidth {
-		return 1
-	}
-	return (width + gap) / (entryWidth + gap)
-}
-
 func cropRows(rows []string, offset int, viewportHeight int) []string {
 	if offset < 0 {
 		offset = 0
@@ -247,12 +210,12 @@ func addVerticalScrollbar(lines []string, contentWidth int, viewportHeight int, 
 	}
 
 	trackHeight := viewportHeight
-	thumbHeight := int(math.Max(1, math.Round(float64(trackHeight*viewportHeight)/float64(totalRows))))
+	thumbHeight := max(1, int(float64(trackHeight*viewportHeight)/float64(totalRows)+0.5))
 	maxThumbTop := trackHeight - thumbHeight
 	maxOffset := totalRows - viewportHeight
 	thumbTop := 0
 	if maxOffset > 0 && maxThumbTop > 0 {
-		thumbTop = int(math.Round(float64(offset*maxThumbTop) / float64(maxOffset)))
+		thumbTop = int(float64(offset*maxThumbTop)/float64(maxOffset) + 0.5)
 	}
 
 	res := make([]string, 0, len(lines))
@@ -272,14 +235,4 @@ func max(a int, b int) int {
 		return a
 	}
 	return b
-}
-
-func clamp(value int, minValue int, maxValue int) int {
-	if value < minValue {
-		return minValue
-	}
-	if value > maxValue {
-		return maxValue
-	}
-	return value
 }

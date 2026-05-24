@@ -2,6 +2,7 @@ package start
 
 import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -23,13 +24,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch typedMsg.String() {
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
+			m.cursor = ui.MoveIndex(m.cursor, -1, 0, len(m.options)-1)
 		case "down", "j":
-			if m.cursor < len(m.options)-1 {
-				m.cursor++
-			}
+			m.cursor = ui.MoveIndex(m.cursor, 1, 0, len(m.options)-1)
 		case "enter":
 			return m, m.selectCurrent()
 		}

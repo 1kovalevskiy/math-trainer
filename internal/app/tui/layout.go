@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/result"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/settings"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/start"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/task"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -12,6 +16,11 @@ const (
 	hintAreaHeight    = 2
 	hintBottomPadding = 1
 )
+
+type screenChromeConfig struct {
+	hints      []string
+	fitContent bool
+}
 
 func renderScreenContent(content string, hints []string, width int, height int) string {
 	if width < 1 {
@@ -173,25 +182,32 @@ func centerBlock(content string, width int) string {
 }
 
 func screenHints(screen Screen) []string {
+	return screenChrome(screen).hints
+}
+
+func screenChrome(screen Screen) screenChromeConfig {
 	switch screen {
 	case ScreenStart:
-		return []string{"↑/↓ - выбор, Enter - подтвердить, Ctrl+C - выход"}
+		return screenChromeConfig{
+			hints:      start.Hints(),
+			fitContent: true,
+		}
 	case ScreenSettings:
-		return []string{
-			"↑/↓ - строки, ←/→ - изменить значение или выбрать кнопку",
-			"Enter - подтвердить, Esc - назад, Click - мышь",
+		return screenChromeConfig{
+			hints:      settings.Hints(),
+			fitContent: true,
 		}
 	case ScreenTask:
-		return []string{
-			"←/→ - выбор кнопки, Enter - подтвердить",
-			"S - пропустить, Esc - в меню, Click - мышь",
+		return screenChromeConfig{
+			hints:      task.Hints(),
+			fitContent: true,
 		}
 	case ScreenResult:
-		return []string{
-			"↑/↓, j/k, колесо - прокрутка; PgUp/PgDn, Home/End - быстро",
-			"←/→ - выбор кнопки, Enter - подтвердить",
+		return screenChromeConfig{
+			hints:      result.Hints(),
+			fitContent: false,
 		}
 	default:
-		return nil
+		return screenChromeConfig{fitContent: true}
 	}
 }

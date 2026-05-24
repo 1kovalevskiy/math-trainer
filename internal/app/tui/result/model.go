@@ -1,8 +1,7 @@
 package result
 
 import (
-	"math"
-
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -60,23 +59,11 @@ func (m Model) selectedOption() Option {
 }
 
 func (m *Model) clampScroll() {
-	maxOffset := m.maxScrollOffset()
-	if m.scrollOffset < 0 {
-		m.scrollOffset = 0
-	}
-	if m.scrollOffset > maxOffset {
-		m.scrollOffset = maxOffset
-	}
+	m.scrollOffset = m.scrollState().ClampOffset(m.scrollOffset)
 }
 
 func (m Model) maxScrollOffset() int {
-	if m.lastViewportHeight < 1 {
-		return 0
-	}
-	if m.lastContentRows <= m.lastViewportHeight {
-		return 0
-	}
-	return m.lastContentRows - m.lastViewportHeight
+	return m.scrollState().MaxOffset()
 }
 
 func (m Model) WithViewport(width int, height int) Model {
@@ -113,15 +100,15 @@ func (m *Model) refreshScrollBounds() {
 	if width < 1 {
 		width = 1
 	}
-	columns, _, contentRows, _, _ := m.layoutParams(width, viewportHeight, len(m.summary.Results), entryWidth)
-	_ = columns
-	m.lastContentRows = contentRows
+	layout := m.gridLayout(width, viewportHeight, len(m.summary.Results), entryWidth)
+	m.lastContentRows = layout.ContentRows
 	m.clampScroll()
 }
 
-func ceilDiv(a int, b int) int {
-	if b < 1 {
-		return 0
+func (m Model) scrollState() ui.ScrollState {
+	return ui.ScrollState{
+		Offset:       m.scrollOffset,
+		ViewportRows: m.lastViewportHeight,
+		ContentRows:  m.lastContentRows,
 	}
-	return int(math.Ceil(float64(a) / float64(b)))
 }

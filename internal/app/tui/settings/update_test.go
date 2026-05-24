@@ -62,6 +62,19 @@ func TestUpdateReturnsFromActionRowToSettingsRow(t *testing.T) {
 	}
 }
 
+func TestUpdateDoesNotMoveActionRowDownToSettingsRows(t *testing.T) {
+	model := NewModel(mathmodels.TrainingSettings{ExamplesCount: 10}, testRules{})
+
+	for i := 0; i < 5; i++ {
+		model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	}
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+
+	if model.cursor != rowApply {
+		t.Fatalf("cursor mismatch: got %d, want %d", model.cursor, rowApply)
+	}
+}
+
 func TestUpdateChangesEachOperationDifficulty(t *testing.T) {
 	model := NewModel(mathmodels.TrainingSettings{
 		AddDifficulty:      mathmodels.DifficultyEasy,

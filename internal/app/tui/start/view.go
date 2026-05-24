@@ -2,22 +2,15 @@ package start
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
-	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 )
 
 func (m Model) View() string {
 	var b strings.Builder
-	buttonWidth := 1
-
-	for _, option := range m.options {
-		width := lipgloss.Width(ui.MenuItem(false, option))
-		buttonWidth = int(math.Max(float64(buttonWidth), float64(width)))
-	}
+	buttonWidth := ui.MaxButtonWidth(m.options)
 
 	b.WriteString(ui.Title.Render("Математический тренажер") + "\n")
 	b.WriteString(ui.Subtitle.Render("Тренировка устного счета") + "\n\n")
@@ -30,6 +23,10 @@ func (m Model) View() string {
 	}
 
 	return b.String()
+}
+
+func (m Model) ViewWithSize(_, _ int) string {
+	return m.View()
 }
 
 func optionZoneID(index int) string {

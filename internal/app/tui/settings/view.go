@@ -26,25 +26,8 @@ const (
 	zoneBack         = "settings:back"
 )
 
-var activeRowMarkerStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("221")).
-	Background(lipgloss.Color("62"))
-
-var (
-	settingsRowActiveStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("62"))
-	settingsRowInactiveStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("252")).
-					Background(lipgloss.Color("236"))
-)
-
 type settingsLayout struct {
-	labelWidth int
-	valueWidth int
-	rowWidth   int
+	row        ui.KeyValueRowLayout
 	applyWidth int
 	backWidth  int
 }
@@ -52,8 +35,10 @@ type settingsLayout struct {
 func (m Model) View() string {
 	var b strings.Builder
 	layout := m.makeSettingsLayout()
-	actionsLine := zone.Mark(zoneApply, ui.ButtonFixed("Применить", m.cursor == rowApply, layout.applyWidth)) + " " +
-		zone.Mark(zoneBack, ui.ButtonFixed("Назад", m.cursor == rowBack, layout.backWidth))
+	actionsLine := ui.JoinInline([]string{
+		zone.Mark(zoneApply, ui.ButtonFixed("Применить", m.cursor == rowApply, layout.applyWidth)),
+		zone.Mark(zoneBack, ui.ButtonFixed("Назад", m.cursor == rowBack, layout.backWidth)),
+	}, 1)
 
 	b.WriteString(ui.Title.Render("Настройки тренировки") + "\n")
 	b.WriteString(ui.Subtitle.Render("Параметры сессии перед стартом") + "\n\n")
@@ -77,60 +62,43 @@ func (m Model) View() string {
 	return b.String()
 }
 
+func (m Model) ViewWithSize(_, _ int) string {
+	return m.View()
+}
+
 func (m Model) operationLine(active bool, label string, difficulty mathmodels.Difficulty, prevZone, nextZone string, layout settingsLayout) string {
 	return settingLine(active, label, m.operationValue(active, difficulty, prevZone, nextZone), layout)
 }
 
-func (m Model) operationValue(active bool, difficulty mathmodels.Difficulty, prevZone, nextZone string) string {
-	rowStyle := settingsRowStyle(active)
-	return fmt.Sprintf(
-		"%s%s%s%s%s",
-		zone.Mark(prevZone, ui.SmallButton("←", active)),
-		rowStyle.Render(" "),
-		rowStyle.Render(shared.DifficultyLabel(difficulty)),
-		rowStyle.Render(" "),
-		zone.Mark(nextZone, ui.SmallButton("→", active)),
-	)
-}
-
-func (m Model) countValue(active bool) string {
-	rowStyle := settingsRowStyle(active)
-	return fmt.Sprintf(
-		"%s%s%s%s%s",
-		zone.Mark(zoneCountDec, ui.SmallButton("-", active)),
-		rowStyle.Render(" "),
-		rowStyle.Render(fmt.Sprintf("%d", m.settings.ExamplesCount)),
-		rowStyle.Render(" "),
-		zone.Mark(zoneCountInc, ui.SmallButton("+", active)),
-	)
-}
-
-func settingLine(active bool, label string, value string, layout settingsLayout) string {
-	rowStyle := settingsRowStyle(active)
-	leftMarker := rowStyle.Render(" ")
-	rightMarker := rowStyle.Render(" ")
-	if active {
-		leftMarker = activeRowMarkerStyle.Render("▸")
-		rightMarker = activeRowMarkerStyle.Render("◂")
+func (m Model) operationValue(active bool, difficulty mathmodels.Difficulty, prevZone, nextZone string) []ui.Segment {
+	rowStyle := ui.SettingRowStyle(active)
+	return []ui.Segment{
+		{Text: zone.Mark(prevZone, ui.SmallButton("←", active))},
+		{Text: " ", Style: rowStyle},
+		{Text: shared.DifficultyLabel(difficulty), Style: rowStyle},
+		{Text: " ", Style: rowStyle},
+		{Text: zone.Mark(nextZone, ui.SmallButton("→", active))},
 	}
+}
 
-	labelText := label + ":"
-	labelPadding := max(0, layout.labelWidth-lipgloss.Width(labelText))
-	valuePadding := max(0, layout.valueWidth-lipgloss.Width(value))
-	valuePadLeft := valuePadding / 2
-	valuePadRight := valuePadding - valuePadLeft
-	content := rowStyle.Render("  ") +
-		leftMarker +
-		rowStyle.Render(labelText) +
-		rowStyle.Render(strings.Repeat(" ", labelPadding)) +
-		rowStyle.Render(" ") +
-		rowStyle.Render(strings.Repeat(" ", valuePadLeft)) +
-		value +
-		rowStyle.Render(strings.Repeat(" ", valuePadRight)) +
-		rightMarker +
-		rowStyle.Render("  ")
-	pad := max(0, layout.rowWidth-lipgloss.Width(content))
-	return content + rowStyle.Render(strings.Repeat(" ", pad))
+func (m Model) countValue(active bool) []ui.Segment {
+	rowStyle := ui.SettingRowStyle(active)
+	return []ui.Segment{
+		{Text: zone.Mark(zoneCountDec, ui.SmallButton("-", active))},
+		{Text: " ", Style: rowStyle},
+		{Text: fmt.Sprintf("%d", m.settings.ExamplesCount), Style: rowStyle},
+		{Text: " ", Style: rowStyle},
+		{Text: zone.Mark(zoneCountInc, ui.SmallButton("+", active))},
+	}
+}
+
+func settingLine(active bool, label string, value []ui.Segment, layout settingsLayout) string {
+	return ui.RenderKeyValueRow(ui.KeyValueRow{
+		Active: active,
+		Label:  label,
+		Value:  value,
+		Layout: layout.row,
+	})
 }
 
 func settingsLabelWidth() int {
@@ -143,9 +111,9 @@ func settingsLabelWidth() int {
 	)
 }
 
-func (m Model) settingsValueWidth(countValue string) int {
-	valueWidth := lipgloss.Width(m.countValue(false))
-	valueWidth = max(valueWidth, lipgloss.Width(m.countValue(true)))
+func (m Model) settingsValueWidth() int {
+	valueWidth := lipgloss.Width(ui.RenderSegments(m.countValue(false)...))
+	valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.countValue(true)...)))
 	diffRows := []struct {
 		difficulty mathmodels.Difficulty
 	}{
@@ -156,19 +124,19 @@ func (m Model) settingsValueWidth(countValue string) int {
 	}
 
 	for _, row := range diffRows {
-		valueWidth = max(valueWidth, lipgloss.Width(m.operationValue(false, row.difficulty, "", "")))
-		valueWidth = max(valueWidth, lipgloss.Width(m.operationValue(true, row.difficulty, "", "")))
+		valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.operationValue(false, row.difficulty, "", "")...)))
+		valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.operationValue(true, row.difficulty, "", "")...)))
 	}
 
 	return valueWidth
 }
 
 func settingsRowWidth(labelWidth int, valueWidth int) int {
-	return 2 + 1 + labelWidth + 1 + valueWidth + 1 + 2
+	return ui.KeyValueBaseRowWidth(labelWidth, valueWidth)
 }
 
 func (m Model) settingsVisualRowWidth(layout settingsLayout) int {
-	width := settingsRowWidth(layout.labelWidth, layout.valueWidth)
+	width := settingsRowWidth(layout.row.LabelWidth, layout.row.ValueWidth)
 	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowAddDifficulty, "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext, layout)))
 	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowSubtractDifficulty, "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext, layout)))
 	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowMultiplyDifficulty, "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext, layout)))
@@ -179,18 +147,20 @@ func (m Model) settingsVisualRowWidth(layout settingsLayout) int {
 
 func (m Model) makeSettingsLayout() settingsLayout {
 	layout := settingsLayout{
-		labelWidth: settingsLabelWidth(),
-		valueWidth: m.settingsValueWidth(""),
+		row: ui.KeyValueRowLayout{
+			LabelWidth: settingsLabelWidth(),
+			ValueWidth: m.settingsValueWidth(),
+		},
 	}
-	layout.rowWidth = m.settingsVisualRowWidth(layout)
+	layout.row.RowWidth = m.settingsVisualRowWidth(layout)
 
 	minActionsWidth := lipgloss.Width(ui.Button("Применить", false) + " " + ui.Button("Назад", false))
-	if layout.rowWidth < minActionsWidth {
-		layout.rowWidth = minActionsWidth
+	if layout.row.RowWidth < minActionsWidth {
+		layout.row.RowWidth = minActionsWidth
 	}
 
-	layout.applyWidth, layout.backWidth = actionContentWidths(
-		layout.rowWidth,
+	layout.applyWidth, layout.backWidth = ui.StretchTwoButtonWidths(
+		layout.row.RowWidth,
 		"Применить",
 		m.cursor == rowApply,
 		"Назад",
@@ -198,35 +168,6 @@ func (m Model) makeSettingsLayout() settingsLayout {
 	)
 
 	return layout
-}
-
-func settingsRowStyle(active bool) lipgloss.Style {
-	if active {
-		return settingsRowActiveStyle
-	}
-	return settingsRowInactiveStyle
-}
-
-func actionContentWidths(totalLineWidth int, applyText string, applyActive bool, backText string, backActive bool) (int, int) {
-	applyMin := lipgloss.Width(applyText)
-	backMin := lipgloss.Width(backText)
-
-	applyWidth := applyMin
-	backWidth := backMin
-	for {
-		line := ui.ButtonFixed(applyText, applyActive, applyWidth) + " " + ui.ButtonFixed(backText, backActive, backWidth)
-		current := lipgloss.Width(line)
-		if current >= totalLineWidth {
-			break
-		}
-		if applyWidth <= backWidth {
-			applyWidth++
-		} else {
-			backWidth++
-		}
-	}
-
-	return applyWidth, backWidth
 }
 
 func max(values ...int) int {

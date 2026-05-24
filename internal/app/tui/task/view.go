@@ -31,11 +31,15 @@ func (m Model) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(zone.Mark(zoneSubmit, ui.Button("Ответить", m.buttonCursor == buttonSubmit)))
-	b.WriteString(" ")
-	b.WriteString(zone.Mark(zoneSkip, ui.Button("Пропустить", m.buttonCursor == buttonSkip)))
-	b.WriteString(" ")
-	b.WriteString(zone.Mark(zoneBack, ui.Button("В меню", m.buttonCursor == buttonBack)))
+	b.WriteString(ui.JoinInline([]string{
+		zone.Mark(zoneSubmit, ui.Button("Ответить", m.buttonCursor == buttonSubmit)),
+		zone.Mark(zoneSkip, ui.Button("Пропустить", m.buttonCursor == buttonSkip)),
+		zone.Mark(zoneBack, ui.Button("В меню", m.buttonCursor == buttonBack)),
+	}, 1))
 
 	return b.String()
+}
+
+func (m Model) ViewWithSize(_, _ int) string {
+	return m.View()
 }

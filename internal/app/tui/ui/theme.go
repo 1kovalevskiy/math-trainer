@@ -61,6 +61,20 @@ var (
 				Foreground(lipgloss.Color("252")).
 				Background(lipgloss.Color("239")).
 				Padding(0, 1)
+
+	settingRowActive = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("230")).
+				Background(lipgloss.Color("62"))
+
+	settingRowInactive = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("252")).
+				Background(lipgloss.Color("236"))
+
+	settingRowMarker = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("221")).
+				Background(lipgloss.Color("62"))
 )
 
 func MenuItem(active bool, text string) string {
@@ -96,4 +110,16 @@ func SmallButton(text string, active bool) string {
 	}
 
 	return smallButtonInactive.Render(text)
+}
+
+func SettingRowStyle(active bool) lipgloss.Style {
+	if active {
+		return settingRowActive
+	}
+
+	return settingRowInactive
+}
+
+func SettingRowMarkerStyle() lipgloss.Style {
+	return settingRowMarker
 }
