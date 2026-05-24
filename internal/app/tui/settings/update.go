@@ -43,7 +43,7 @@ func (m Model) moveCursorUp() Model {
 		m.cursor = rowExamplesCount
 		return m
 	}
-	if m.cursor > rowDifficulty {
+	if m.cursor > rowAddDifficulty {
 		m.cursor--
 	}
 
@@ -64,13 +64,45 @@ func (m Model) moveCursorDown() Model {
 
 func (m Model) handleMouseClick(msg tea.MouseMsg) (Model, tea.Cmd) {
 	switch {
-	case shared.InZone(zoneDifficultyPrev, msg):
-		m.cursor = rowDifficulty
-		m.settings.Difficulty = m.prevDifficulty()
+	case shared.InZone(zoneAddPrev, msg):
+		m.cursor = rowAddDifficulty
+		m.settings.AddDifficulty = m.prevDifficulty(m.settings.AddDifficulty)
+		m.settings = m.normalizeSettings()
 		return m, nil
-	case shared.InZone(zoneDifficultyNext, msg):
-		m.cursor = rowDifficulty
-		m.settings.Difficulty = m.nextDifficulty()
+	case shared.InZone(zoneAddNext, msg):
+		m.cursor = rowAddDifficulty
+		m.settings.AddDifficulty = m.nextDifficulty(m.settings.AddDifficulty)
+		m.settings = m.normalizeSettings()
+		return m, nil
+	case shared.InZone(zoneSubtractPrev, msg):
+		m.cursor = rowSubtractDifficulty
+		m.settings.SubtractDifficulty = m.prevDifficulty(m.settings.SubtractDifficulty)
+		m.settings = m.normalizeSettings()
+		return m, nil
+	case shared.InZone(zoneSubtractNext, msg):
+		m.cursor = rowSubtractDifficulty
+		m.settings.SubtractDifficulty = m.nextDifficulty(m.settings.SubtractDifficulty)
+		m.settings = m.normalizeSettings()
+		return m, nil
+	case shared.InZone(zoneMultiplyPrev, msg):
+		m.cursor = rowMultiplyDifficulty
+		m.settings.MultiplyDifficulty = m.prevDifficulty(m.settings.MultiplyDifficulty)
+		m.settings = m.normalizeSettings()
+		return m, nil
+	case shared.InZone(zoneMultiplyNext, msg):
+		m.cursor = rowMultiplyDifficulty
+		m.settings.MultiplyDifficulty = m.nextDifficulty(m.settings.MultiplyDifficulty)
+		m.settings = m.normalizeSettings()
+		return m, nil
+	case shared.InZone(zoneDividePrev, msg):
+		m.cursor = rowDivideDifficulty
+		m.settings.DivideDifficulty = m.prevDifficulty(m.settings.DivideDifficulty)
+		m.settings = m.normalizeSettings()
+		return m, nil
+	case shared.InZone(zoneDivideNext, msg):
+		m.cursor = rowDivideDifficulty
+		m.settings.DivideDifficulty = m.nextDifficulty(m.settings.DivideDifficulty)
+		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneCountDec, msg):
 		m.cursor = rowExamplesCount
@@ -95,8 +127,18 @@ func (m Model) handleMouseClick(msg tea.MouseMsg) (Model, tea.Cmd) {
 
 func (m Model) incrementCurrent() Model {
 	switch m.cursor {
-	case rowDifficulty:
-		m.settings.Difficulty = m.nextDifficulty()
+	case rowAddDifficulty:
+		m.settings.AddDifficulty = m.nextDifficulty(m.settings.AddDifficulty)
+		m.settings = m.normalizeSettings()
+	case rowSubtractDifficulty:
+		m.settings.SubtractDifficulty = m.nextDifficulty(m.settings.SubtractDifficulty)
+		m.settings = m.normalizeSettings()
+	case rowMultiplyDifficulty:
+		m.settings.MultiplyDifficulty = m.nextDifficulty(m.settings.MultiplyDifficulty)
+		m.settings = m.normalizeSettings()
+	case rowDivideDifficulty:
+		m.settings.DivideDifficulty = m.nextDifficulty(m.settings.DivideDifficulty)
+		m.settings = m.normalizeSettings()
 	case rowExamplesCount:
 		m.settings.ExamplesCount++
 		m.settings = m.normalizeSettings()
@@ -109,8 +151,18 @@ func (m Model) incrementCurrent() Model {
 
 func (m Model) decrementCurrent() Model {
 	switch m.cursor {
-	case rowDifficulty:
-		m.settings.Difficulty = m.prevDifficulty()
+	case rowAddDifficulty:
+		m.settings.AddDifficulty = m.prevDifficulty(m.settings.AddDifficulty)
+		m.settings = m.normalizeSettings()
+	case rowSubtractDifficulty:
+		m.settings.SubtractDifficulty = m.prevDifficulty(m.settings.SubtractDifficulty)
+		m.settings = m.normalizeSettings()
+	case rowMultiplyDifficulty:
+		m.settings.MultiplyDifficulty = m.prevDifficulty(m.settings.MultiplyDifficulty)
+		m.settings = m.normalizeSettings()
+	case rowDivideDifficulty:
+		m.settings.DivideDifficulty = m.prevDifficulty(m.settings.DivideDifficulty)
+		m.settings = m.normalizeSettings()
 	case rowExamplesCount:
 		m.settings.ExamplesCount--
 		m.settings = m.normalizeSettings()
@@ -129,18 +181,18 @@ func (m Model) normalizeSettings() mathmodels.TrainingSettings {
 	return m.rules.NormalizeSettings(m.settings)
 }
 
-func (m Model) nextDifficulty() mathmodels.Difficulty {
+func (m Model) nextDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty {
 	if m.rules == nil {
-		return m.settings.Difficulty
+		return current
 	}
 
-	return m.rules.GetNextDifficulty(m.settings.Difficulty)
+	return m.rules.GetNextDifficulty(current)
 }
 
-func (m Model) prevDifficulty() mathmodels.Difficulty {
+func (m Model) prevDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty {
 	if m.rules == nil {
-		return m.settings.Difficulty
+		return current
 	}
 
-	return m.rules.GetPreviousDifficulty(m.settings.Difficulty)
+	return m.rules.GetPreviousDifficulty(current)
 }

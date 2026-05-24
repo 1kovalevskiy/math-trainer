@@ -4,8 +4,10 @@ import mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 
 func (c *Controller) GetPreviousDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty {
 	switch current {
-	case mathmodels.DifficultyEasy:
+	case mathmodels.DifficultyDisabled:
 		return mathmodels.DifficultyHard
+	case mathmodels.DifficultyEasy:
+		return mathmodels.DifficultyDisabled
 	case mathmodels.DifficultyMedium:
 		return mathmodels.DifficultyEasy
 	case mathmodels.DifficultyHard:

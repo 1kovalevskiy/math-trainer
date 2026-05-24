@@ -44,7 +44,7 @@ func (c *Controller) completeCurrent(
 		state.CurrentExercise = mathmodels.Exercise{}
 	} else {
 		state.CurrentOrder++
-		nextExercise, err := c.generateUnused(state.Settings.Difficulty, usedExercises(state))
+		nextExercise, err := c.generateUnused(state.Settings, usedExercises(state))
 		if err != nil {
 			return mathmodels.TrainingSnapshot{}, fmt.Errorf("generate next exercise: %w", err)
 		}

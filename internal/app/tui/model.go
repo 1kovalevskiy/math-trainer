@@ -27,8 +27,11 @@ type Model struct {
 
 func NewModel(ctx context.Context, mathController mathController) Model {
 	defaultSettings := mathmodels.TrainingSettings{
-		Difficulty:    mathmodels.DifficultyEasy,
-		ExamplesCount: mathmodels.DefaultExamplesCount,
+		AddDifficulty:      mathmodels.DifficultyEasy,
+		SubtractDifficulty: mathmodels.DifficultyEasy,
+		MultiplyDifficulty: mathmodels.DifficultyDisabled,
+		DivideDifficulty:   mathmodels.DifficultyDisabled,
+		ExamplesCount:      mathmodels.DefaultExamplesCount,
 	}
 	if mathController != nil {
 		defaultSettings = mathController.GetDefaultSettings()
@@ -41,7 +44,7 @@ func NewModel(ctx context.Context, mathController mathController) Model {
 		settings:       defaultSettings,
 		startModel:     start.NewModel(),
 		settingsModel:  settings.NewModel(defaultSettings, mathController),
-		taskModel:      task.NewModel(nil, defaultSettings.Difficulty),
+		taskModel:      task.NewModel(nil, defaultSettings),
 		resultModel:    result.NewModel(),
 	}
 }

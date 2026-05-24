@@ -26,8 +26,11 @@ func TestStorage_SaveGetCopiesState(t *testing.T) {
 	answer := 5
 	state := mathmodels.TrainingState{
 		Settings: mathmodels.TrainingSettings{
-			Difficulty:    mathmodels.DifficultyMedium,
-			ExamplesCount: 1,
+			AddDifficulty:      mathmodels.DifficultyMedium,
+			SubtractDifficulty: mathmodels.DifficultyEasy,
+			MultiplyDifficulty: mathmodels.DifficultyDisabled,
+			DivideDifficulty:   mathmodels.DifficultyDisabled,
+			ExamplesCount:      1,
 		},
 		CurrentOrder: 1,
 		CurrentExercise: mathmodels.Exercise{

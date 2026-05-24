@@ -86,7 +86,7 @@ func (m Model) applySnapshot(snapshot mathmodels.TrainingSnapshot) Model {
 
 	switch snapshot.Phase {
 	case mathmodels.TrainingPhaseInProgress:
-		m.taskModel = task.NewModel(snapshot.Current, snapshot.Settings.Difficulty)
+		m.taskModel = task.NewModel(snapshot.Current, snapshot.Settings)
 		m.screen = ScreenTask
 	case mathmodels.TrainingPhaseFinished:
 		m.resultModel = result.NewModel().WithSummary(snapshot.Summary)

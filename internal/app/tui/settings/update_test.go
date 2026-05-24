@@ -7,11 +7,35 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestUpdateSelectsActionButtonsHorizontally(t *testing.T) {
-	model := NewModel(mathmodels.TrainingSettings{}, nil)
+type testRules struct{}
 
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+func (testRules) NormalizeSettings(settings mathmodels.TrainingSettings) mathmodels.TrainingSettings {
+	return settings
+}
+
+func (testRules) GetNextDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty {
+	switch current {
+	case mathmodels.DifficultyDisabled:
+		return mathmodels.DifficultyEasy
+	case mathmodels.DifficultyEasy:
+		return mathmodels.DifficultyMedium
+	case mathmodels.DifficultyMedium:
+		return mathmodels.DifficultyHard
+	default:
+		return mathmodels.DifficultyDisabled
+	}
+}
+
+func (testRules) GetPreviousDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty {
+	return current
+}
+
+func TestUpdateSelectsActionButtonsHorizontally(t *testing.T) {
+	model := NewModel(mathmodels.TrainingSettings{}, testRules{})
+
+	for i := 0; i < 5; i++ {
+		model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	}
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
 
 	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -24,15 +48,47 @@ func TestUpdateSelectsActionButtonsHorizontally(t *testing.T) {
 }
 
 func TestUpdateReturnsFromActionRowToSettingsRow(t *testing.T) {
-	model := NewModel(mathmodels.TrainingSettings{}, nil)
+	model := NewModel(mathmodels.TrainingSettings{ExamplesCount: 10}, testRules{})
 
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	for i := 0; i < 5; i++ {
+		model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	}
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyUp})
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
 
-	if model.settings.ExamplesCount != 1 {
+	if model.settings.ExamplesCount != 11 {
 		t.Fatalf("expected examples count to increment, got %d", model.settings.ExamplesCount)
+	}
+}
+
+func TestUpdateChangesEachOperationDifficulty(t *testing.T) {
+	model := NewModel(mathmodels.TrainingSettings{
+		AddDifficulty:      mathmodels.DifficultyEasy,
+		SubtractDifficulty: mathmodels.DifficultyEasy,
+		MultiplyDifficulty: mathmodels.DifficultyDisabled,
+		DivideDifficulty:   mathmodels.DifficultyDisabled,
+		ExamplesCount:      10,
+	}, testRules{})
+
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
+
+	if got, want := model.settings.AddDifficulty, mathmodels.DifficultyMedium; got != want {
+		t.Fatalf("add difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := model.settings.SubtractDifficulty, mathmodels.DifficultyMedium; got != want {
+		t.Fatalf("subtract difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := model.settings.MultiplyDifficulty, mathmodels.DifficultyEasy; got != want {
+		t.Fatalf("multiply difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := model.settings.DivideDifficulty, mathmodels.DifficultyEasy; got != want {
+		t.Fatalf("divide difficulty mismatch: got %q, want %q", got, want)
 	}
 }

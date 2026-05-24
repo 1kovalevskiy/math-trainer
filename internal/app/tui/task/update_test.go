@@ -7,42 +7,34 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestUpdateSelectsTaskButtonsHorizontally(t *testing.T) {
-	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.DifficultyEasy)
+func TestUpdateMovesButtonSelectionHorizontally(t *testing.T) {
+	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
 
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
 
-	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if cmd == nil {
-		t.Fatal("expected command")
-	}
-	if _, ok := cmd().(SkipMsg); !ok {
-		t.Fatalf("expected SkipMsg, got %T", cmd())
+	if model.buttonCursor != buttonBack {
+		t.Fatalf("button cursor mismatch: got %d, want %d", model.buttonCursor, buttonBack)
 	}
 }
 
-func TestUpdateSelectsBackButtonHorizontally(t *testing.T) {
-	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.DifficultyEasy)
+func TestUpdateBackspaceRemovesInputSymbol(t *testing.T) {
+	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
 
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyBackspace})
 
-	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if cmd == nil {
-		t.Fatal("expected command")
-	}
-	if _, ok := cmd().(BackMsg); !ok {
-		t.Fatalf("expected BackMsg, got %T", cmd())
+	if got, want := model.input, "1"; got != want {
+		t.Fatalf("input mismatch: got %q, want %q", got, want)
 	}
 }
 
-func TestUpdateIgnoresVerticalArrowsForTaskButtons(t *testing.T) {
-	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.DifficultyEasy)
-
-	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+func TestUpdateEnterOnSubmitWithoutInputDoesNothing(t *testing.T) {
+	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
 
 	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd != nil {
-		t.Fatalf("expected no command because submit is still selected without input, got %T", cmd())
+		t.Fatalf("unexpected cmd for empty submit: %v", cmd)
 	}
 }

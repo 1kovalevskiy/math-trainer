@@ -16,7 +16,7 @@ func (c *Controller) StartTraining(
 	}
 
 	settings = c.NormalizeSettings(settings)
-	exercise, err := c.generateUnused(settings.Difficulty, nil)
+	exercise, err := c.generateUnused(settings, nil)
 	if err != nil {
 		return mathmodels.TrainingSnapshot{}, fmt.Errorf("generate first exercise: %w", err)
 	}

@@ -18,9 +18,11 @@ const (
 func (m Model) View() string {
 	var b strings.Builder
 
+	difficulty := shared.DifficultyForOperator(m.settings, m.current.Exercise.Operator)
+
 	b.WriteString(ui.Title.Render("Математическое задание") + "\n")
 	b.WriteString(ui.Subtitle.Render(fmt.Sprintf("Пример %d из %d", m.current.Order, m.current.Total)) + "\n\n")
-	b.WriteString(ui.Label.Render("Сложность: ") + ui.Value.Render(shared.DifficultyLabel(m.difficulty)) + "\n")
+	b.WriteString(ui.Label.Render("Сложность: ") + ui.Value.Render(shared.DifficultyLabel(difficulty)) + "\n")
 	b.WriteString(ui.Label.Render("Пример: ") + ui.Accent.Render(shared.ExerciseText(m.current.Exercise)+" = ?") + "\n\n")
 	b.WriteString(ui.Label.Render("Ваш ответ: ") + ui.Value.Render(m.input) + "\n")
 

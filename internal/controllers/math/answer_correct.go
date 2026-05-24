@@ -8,6 +8,13 @@ func correctAnswer(exercise mathmodels.Exercise) int {
 		return exercise.Left + exercise.Right
 	case mathmodels.OperatorSubtract:
 		return exercise.Left - exercise.Right
+	case mathmodels.OperatorMultiply:
+		return exercise.Left * exercise.Right
+	case mathmodels.OperatorDivide:
+		if exercise.Right == 0 {
+			return 0
+		}
+		return exercise.Left / exercise.Right
 	default:
 		return 0
 	}

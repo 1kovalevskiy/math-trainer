@@ -7,6 +7,9 @@ const (
 )
 
 type TrainingSettings struct {
-	Difficulty    Difficulty
-	ExamplesCount int
+	AddDifficulty      Difficulty
+	SubtractDifficulty Difficulty
+	MultiplyDifficulty Difficulty
+	DivideDifficulty   Difficulty
+	ExamplesCount      int
 }

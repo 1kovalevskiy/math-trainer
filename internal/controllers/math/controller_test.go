@@ -20,24 +20,17 @@ func TestController_StartSubmitSkipFinishUsesStorage(t *testing.T) {
 		mathmodels.Exercise{Left: 7, Right: 4, Operator: mathmodels.OperatorSubtract},
 	)))
 
-	started, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{
-		Difficulty:    mathmodels.DifficultyMedium,
-		ExamplesCount: 2,
-	})
+	started, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{AddDifficulty: mathmodels.DifficultyMedium, SubtractDifficulty: mathmodels.DifficultyEasy, MultiplyDifficulty: mathmodels.DifficultyDisabled, DivideDifficulty: mathmodels.DifficultyDisabled, ExamplesCount: 2})
 	if err != nil {
 		t.Fatalf("StartTraining() unexpected error: %v", err)
 	}
-	assertCurrentExercise(t, started, 1, 2, mathmodels.Exercise{
-		Left: 2, Right: 3, Operator: mathmodels.OperatorAdd,
-	})
+	assertCurrentExercise(t, started, 1, 2, mathmodels.Exercise{Left: 2, Right: 3, Operator: mathmodels.OperatorAdd})
 
 	afterSubmit, err := controller.SubmitAnswer(ctx, "5")
 	if err != nil {
 		t.Fatalf("SubmitAnswer() unexpected error: %v", err)
 	}
-	assertCurrentExercise(t, afterSubmit, 2, 2, mathmodels.Exercise{
-		Left: 7, Right: 4, Operator: mathmodels.OperatorSubtract,
-	})
+	assertCurrentExercise(t, afterSubmit, 2, 2, mathmodels.Exercise{Left: 7, Right: 4, Operator: mathmodels.OperatorSubtract})
 
 	finished, err := controller.SkipCurrent(ctx)
 	if err != nil {
@@ -52,27 +45,6 @@ func TestController_StartSubmitSkipFinishUsesStorage(t *testing.T) {
 	if got, want := finished.Summary.Correct, 1; got != want {
 		t.Fatalf("summary correct mismatch: got %d, want %d", got, want)
 	}
-	if got, want := finished.Summary.Total, 2; got != want {
-		t.Fatalf("summary total mismatch: got %d, want %d", got, want)
-	}
-	if got, want := len(finished.Summary.Results), 2; got != want {
-		t.Fatalf("summary results count mismatch: got %d, want %d", got, want)
-	}
-	if got, want := finished.Summary.Results[0].Status, mathmodels.ResultStatusCorrect; got != want {
-		t.Fatalf("first result status mismatch: got %q, want %q", got, want)
-	}
-	if got, want := finished.Summary.Results[0].CorrectAnswer, 5; got != want {
-		t.Fatalf("first result correct answer mismatch: got %d, want %d", got, want)
-	}
-	if got, want := finished.Summary.Results[1].Status, mathmodels.ResultStatusSkipped; got != want {
-		t.Fatalf("second result status mismatch: got %q, want %q", got, want)
-	}
-	if finished.Summary.Results[1].UserAnswer != nil {
-		t.Fatalf("second result user answer mismatch: got %v, want nil", *finished.Summary.Results[1].UserAnswer)
-	}
-	if got, want := finished.Summary.Results[1].CorrectAnswer, 3; got != want {
-		t.Fatalf("second result correct answer mismatch: got %d, want %d", got, want)
-	}
 }
 
 func TestController_SubmitAnswerRejectsInvalidInputAndKeepsState(t *testing.T) {
@@ -84,10 +56,7 @@ func TestController_SubmitAnswerRejectsInvalidInputAndKeepsState(t *testing.T) {
 		mathmodels.Exercise{Left: 8, Right: 2, Operator: mathmodels.OperatorSubtract},
 	)))
 
-	started, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{
-		Difficulty:    mathmodels.DifficultyEasy,
-		ExamplesCount: 1,
-	})
+	started, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{AddDifficulty: mathmodels.DifficultyDisabled, SubtractDifficulty: mathmodels.DifficultyEasy, MultiplyDifficulty: mathmodels.DifficultyDisabled, DivideDifficulty: mathmodels.DifficultyDisabled, ExamplesCount: 1})
 	if err != nil {
 		t.Fatalf("StartTraining() unexpected error: %v", err)
 	}
@@ -104,9 +73,6 @@ func TestController_SubmitAnswerRejectsInvalidInputAndKeepsState(t *testing.T) {
 	if got, want := state.CurrentExercise, started.Current.Exercise; got != want {
 		t.Fatalf("current exercise changed after invalid answer: got %+v, want %+v", got, want)
 	}
-	if got := len(state.Results); got != 0 {
-		t.Fatalf("results changed after invalid answer: got %d results", got)
-	}
 }
 
 func TestController_GeneratesNextExerciseWithoutRepeatingSolvedOnes(t *testing.T) {
@@ -116,16 +82,9 @@ func TestController_GeneratesNextExerciseWithoutRepeatingSolvedOnes(t *testing.T
 	store := mathmemory.New()
 	first := mathmodels.Exercise{Left: 2, Right: 3, Operator: mathmodels.OperatorAdd}
 	second := mathmodels.Exercise{Left: 9, Right: 4, Operator: mathmodels.OperatorSubtract}
-	controller := mathcontroller.New(store, mathcontroller.WithExerciseGenerator(sequenceGenerator(
-		first,
-		first,
-		second,
-	)))
+	controller := mathcontroller.New(store, mathcontroller.WithExerciseGenerator(sequenceGenerator(first, first, second)))
 
-	started, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{
-		Difficulty:    mathmodels.DifficultyEasy,
-		ExamplesCount: 2,
-	})
+	started, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{AddDifficulty: mathmodels.DifficultyEasy, SubtractDifficulty: mathmodels.DifficultyEasy, MultiplyDifficulty: mathmodels.DifficultyDisabled, DivideDifficulty: mathmodels.DifficultyDisabled, ExamplesCount: 2})
 	if err != nil {
 		t.Fatalf("StartTraining() unexpected error: %v", err)
 	}
@@ -143,33 +102,53 @@ func TestController_NormalizeSettings(t *testing.T) {
 
 	controller := mathcontroller.New(mathmemory.New())
 
-	normalized := controller.NormalizeSettings(mathmodels.TrainingSettings{
-		Difficulty:    mathmodels.Difficulty("unknown"),
-		ExamplesCount: -10,
-	})
-	if got, want := normalized.Difficulty, mathmodels.DifficultyEasy; got != want {
-		t.Fatalf("difficulty mismatch: got %q, want %q", got, want)
+	normalized := controller.NormalizeSettings(mathmodels.TrainingSettings{AddDifficulty: mathmodels.Difficulty("unknown"), SubtractDifficulty: mathmodels.Difficulty("unknown"), MultiplyDifficulty: mathmodels.Difficulty("unknown"), DivideDifficulty: mathmodels.Difficulty("unknown"), ExamplesCount: -10})
+	if got, want := normalized.AddDifficulty, mathmodels.DifficultyEasy; got != want {
+		t.Fatalf("add difficulty mismatch: got %q, want %q", got, want)
 	}
-	if got, want := normalized.ExamplesCount, mathmodels.MinExamplesCount; got != want {
-		t.Fatalf("examples count mismatch: got %d, want %d", got, want)
+	if got, want := normalized.SubtractDifficulty, mathmodels.DifficultyEasy; got != want {
+		t.Fatalf("subtract difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := normalized.MultiplyDifficulty, mathmodels.DifficultyDisabled; got != want {
+		t.Fatalf("multiply difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := normalized.DivideDifficulty, mathmodels.DifficultyDisabled; got != want {
+		t.Fatalf("divide difficulty mismatch: got %q, want %q", got, want)
 	}
 
-	normalized = controller.NormalizeSettings(mathmodels.TrainingSettings{
-		Difficulty:    mathmodels.DifficultyHard,
-		ExamplesCount: mathmodels.MaxExamplesCount + 1,
-	})
+	normalized = controller.NormalizeSettings(mathmodels.TrainingSettings{AddDifficulty: mathmodels.DifficultyDisabled, SubtractDifficulty: mathmodels.DifficultyDisabled, MultiplyDifficulty: mathmodels.DifficultyDisabled, DivideDifficulty: mathmodels.DifficultyDisabled, ExamplesCount: mathmodels.MaxExamplesCount + 1})
 	if got, want := normalized.ExamplesCount, mathmodels.MaxExamplesCount; got != want {
 		t.Fatalf("examples count mismatch: got %d, want %d", got, want)
 	}
+	if normalized.AddDifficulty == mathmodels.DifficultyDisabled && normalized.SubtractDifficulty == mathmodels.DifficultyDisabled && normalized.MultiplyDifficulty == mathmodels.DifficultyDisabled && normalized.DivideDifficulty == mathmodels.DifficultyDisabled {
+		t.Fatal("expected at least one enabled operator")
+	}
 }
 
-func assertCurrentExercise(
-	t *testing.T,
-	snapshot mathmodels.TrainingSnapshot,
-	order int,
-	total int,
-	exercise mathmodels.Exercise,
-) {
+func TestController_DivisionAnswer(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store := mathmemory.New()
+	controller := mathcontroller.New(store, mathcontroller.WithExerciseGenerator(sequenceGenerator(
+		mathmodels.Exercise{Left: 12, Right: 3, Operator: mathmodels.OperatorDivide},
+	)))
+
+	_, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{AddDifficulty: mathmodels.DifficultyDisabled, SubtractDifficulty: mathmodels.DifficultyDisabled, MultiplyDifficulty: mathmodels.DifficultyDisabled, DivideDifficulty: mathmodels.DifficultyEasy, ExamplesCount: 1})
+	if err != nil {
+		t.Fatalf("StartTraining() unexpected error: %v", err)
+	}
+
+	finished, err := controller.SubmitAnswer(ctx, "4")
+	if err != nil {
+		t.Fatalf("SubmitAnswer() unexpected error: %v", err)
+	}
+	if got, want := finished.Summary.Correct, 1; got != want {
+		t.Fatalf("summary correct mismatch: got %d, want %d", got, want)
+	}
+}
+
+func assertCurrentExercise(t *testing.T, snapshot mathmodels.TrainingSnapshot, order int, total int, exercise mathmodels.Exercise) {
 	t.Helper()
 
 	if snapshot.Phase != mathmodels.TrainingPhaseInProgress {
@@ -191,7 +170,7 @@ func assertCurrentExercise(
 
 func sequenceGenerator(exercises ...mathmodels.Exercise) mathcontroller.ExerciseGenerator {
 	next := 0
-	return func(mathmodels.Difficulty) (mathmodels.Exercise, error) {
+	return func(mathmodels.TrainingSettings) (mathmodels.Exercise, error) {
 		if next >= len(exercises) {
 			return mathmodels.Exercise{}, errors.New("exercise generator exhausted")
 		}

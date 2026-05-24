@@ -9,11 +9,11 @@ import (
 const maxUniqueExerciseAttempts = 100
 
 func (c *Controller) generateUnused(
-	difficulty mathmodels.Difficulty,
+	settings mathmodels.TrainingSettings,
 	used map[mathmodels.Exercise]struct{},
 ) (mathmodels.Exercise, error) {
 	for attempt := 0; attempt < maxUniqueExerciseAttempts; attempt++ {
-		exercise, err := c.generate(difficulty)
+		exercise, err := c.generate(settings)
 		if err != nil {
 			return mathmodels.Exercise{}, err
 		}

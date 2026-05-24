@@ -58,24 +58,14 @@ func newSession(t *testing.T, exercises ...mathmodels.Exercise) *session {
 		tea.WithoutSignals(),
 	)
 
-	s := &session{
-		ctx:     ctx,
-		cancel:  cancel,
-		store:   store,
-		gen:     gen,
-		program: program,
-		probe:   probe,
-		runDone: make(chan runResult, 1),
-	}
+	s := &session{ctx: ctx, cancel: cancel, store: store, gen: gen, program: program, probe: probe, runDone: make(chan runResult, 1)}
 
 	go func() {
 		model, err := program.Run()
 		s.runDone <- runResult{model: model, err: err}
 	}()
 
-	t.Cleanup(func() {
-		s.stop(t)
-	})
+	t.Cleanup(func() { s.stop(t) })
 
 	select {
 	case <-probe.ready:
@@ -163,7 +153,9 @@ func (s *session) applyExamplesCount(t *testing.T, target int) {
 	s.key(t, "enter")
 	s.eventuallyViewContains(t, "Настройки тренировки")
 
-	s.key(t, "down")
+	for i := 0; i < 4; i++ {
+		s.key(t, "down")
+	}
 	for current := defaultExamplesCount; current < target; current++ {
 		s.key(t, "right")
 	}
@@ -225,16 +217,16 @@ func (s *session) requireNoActiveTraining(t *testing.T) {
 	t.Fatalf("GetState() error mismatch: got %v, want %v", err, mathmodels.ErrNoActiveTraining)
 }
 
-func (s *session) requireGeneratedDifficulties(t *testing.T, want ...mathmodels.Difficulty) {
+func (s *session) requireGeneratedSettings(t *testing.T, want ...mathmodels.TrainingSettings) {
 	t.Helper()
 
-	got := s.gen.Difficulties()
+	got := s.gen.Settings()
 	if len(got) != len(want) {
-		t.Fatalf("generated difficulties count mismatch: got %d (%v), want %d (%v)", len(got), got, len(want), want)
+		t.Fatalf("generated settings count mismatch: got %d, want %d", len(got), len(want))
 	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Fatalf("generated difficulty[%d] mismatch: got %q, want %q", i, got[i], want[i])
+			t.Fatalf("generated settings[%d] mismatch: got %+v, want %+v", i, got[i], want[i])
 		}
 	}
 }
@@ -251,17 +243,12 @@ type probeModel struct {
 type syncMsg chan struct{}
 
 func newProbeModel(inner tea.Model) *probeModel {
-	return &probeModel{
-		inner: inner,
-		ready: make(chan struct{}),
-	}
+	return &probeModel{inner: inner, ready: make(chan struct{})}
 }
 
 func (p *probeModel) Init() tea.Cmd {
 	p.recordView(p.inner.View())
-	p.readyMu.Do(func() {
-		close(p.ready)
-	})
+	p.readyMu.Do(func() { close(p.ready) })
 	return p.inner.Init()
 }
 
@@ -310,21 +297,21 @@ func exercise(left int, right int, operator mathmodels.Operator) mathmodels.Exer
 }
 
 type exerciseGenerator struct {
-	mu           sync.Mutex
-	exercises    []mathmodels.Exercise
-	next         int
-	difficulties []mathmodels.Difficulty
+	mu        sync.Mutex
+	exercises []mathmodels.Exercise
+	next      int
+	settings  []mathmodels.TrainingSettings
 }
 
 func newExerciseGenerator(exercises ...mathmodels.Exercise) *exerciseGenerator {
 	return &exerciseGenerator{exercises: exercises}
 }
 
-func (g *exerciseGenerator) Generate(difficulty mathmodels.Difficulty) (mathmodels.Exercise, error) {
+func (g *exerciseGenerator) Generate(settings mathmodels.TrainingSettings) (mathmodels.Exercise, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	g.difficulties = append(g.difficulties, difficulty)
+	g.settings = append(g.settings, settings)
 	if g.next >= len(g.exercises) {
 		return mathmodels.Exercise{}, errors.New("exercise generator exhausted")
 	}
@@ -334,11 +321,11 @@ func (g *exerciseGenerator) Generate(difficulty mathmodels.Difficulty) (mathmode
 	return exercise, nil
 }
 
-func (g *exerciseGenerator) Difficulties() []mathmodels.Difficulty {
+func (g *exerciseGenerator) Settings() []mathmodels.TrainingSettings {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	return append([]mathmodels.Difficulty(nil), g.difficulties...)
+	return append([]mathmodels.TrainingSettings(nil), g.settings...)
 }
 
 func keyMsg(value string) (tea.KeyMsg, error) {

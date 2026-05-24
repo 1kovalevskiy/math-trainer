@@ -9,7 +9,10 @@ type rules interface {
 }
 
 const (
-	rowDifficulty = iota
+	rowAddDifficulty = iota
+	rowSubtractDifficulty
+	rowMultiplyDifficulty
+	rowDivideDifficulty
 	rowExamplesCount
 	rowApply
 	rowBack
@@ -26,9 +29,5 @@ func NewModel(settings mathmodels.TrainingSettings, rules rules) Model {
 	if rules != nil {
 		settings = rules.NormalizeSettings(settings)
 	}
-	return Model{
-		cursor:   rowDifficulty,
-		settings: settings,
-		rules:    rules,
-	}
+	return Model{cursor: rowAddDifficulty, settings: settings, rules: rules}
 }

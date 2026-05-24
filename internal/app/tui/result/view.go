@@ -23,7 +23,7 @@ func (m Model) View() string {
 
 	b.WriteString(ui.Title.Render("Результаты тренировки") + "\n")
 	b.WriteString(ui.Subtitle.Render("Сводка по всем примерам") + "\n\n")
-	b.WriteString(ui.Label.Render("Сложность: ") + ui.Value.Render(shared.DifficultyLabel(m.summary.Settings.Difficulty)) + "\n\n")
+	b.WriteString(ui.Label.Render("Сложности: ") + ui.Value.Render(settingsDifficultySummary(m.summary.Settings)) + "\n\n")
 
 	for _, entry := range m.summary.Results {
 		b.WriteString(renderEntry(entry) + "\n")
@@ -44,6 +44,16 @@ func (m Model) View() string {
 
 func optionZoneID(index int) string {
 	return fmt.Sprintf("result:option:%d", index)
+}
+
+func settingsDifficultySummary(settings mathmodels.TrainingSettings) string {
+	parts := []string{
+		fmt.Sprintf("+ %s", shared.DifficultyLabel(settings.AddDifficulty)),
+		fmt.Sprintf("- %s", shared.DifficultyLabel(settings.SubtractDifficulty)),
+		fmt.Sprintf("* %s", shared.DifficultyLabel(settings.MultiplyDifficulty)),
+		fmt.Sprintf("/ %s", shared.DifficultyLabel(settings.DivideDifficulty)),
+	}
+	return strings.Join(parts, ", ")
 }
 
 func renderEntry(entry mathmodels.ExampleResult) string {

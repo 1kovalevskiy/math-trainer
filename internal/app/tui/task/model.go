@@ -10,18 +10,15 @@ const (
 )
 
 type Model struct {
-	difficulty   mathmodels.Difficulty
+	settings     mathmodels.TrainingSettings
 	current      mathmodels.CurrentExercise
 	input        string
 	errText      string
 	buttonCursor int
 }
 
-func NewModel(current *mathmodels.CurrentExercise, difficulty mathmodels.Difficulty) Model {
-	model := Model{
-		difficulty:   difficulty,
-		buttonCursor: buttonSubmit,
-	}
+func NewModel(current *mathmodels.CurrentExercise, settings mathmodels.TrainingSettings) Model {
+	model := Model{settings: settings, buttonCursor: buttonSubmit}
 	if current != nil {
 		model.current = *current
 	}

@@ -6,16 +6,23 @@ import (
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
+	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	zone "github.com/lrstanley/bubblezone"
 )
 
 const (
-	zoneDifficultyPrev = "settings:difficulty:prev"
-	zoneDifficultyNext = "settings:difficulty:next"
-	zoneCountDec       = "settings:count:dec"
-	zoneCountInc       = "settings:count:inc"
-	zoneApply          = "settings:apply"
-	zoneBack           = "settings:back"
+	zoneAddPrev      = "settings:add:prev"
+	zoneAddNext      = "settings:add:next"
+	zoneSubtractPrev = "settings:subtract:prev"
+	zoneSubtractNext = "settings:subtract:next"
+	zoneMultiplyPrev = "settings:multiply:prev"
+	zoneMultiplyNext = "settings:multiply:next"
+	zoneDividePrev   = "settings:divide:prev"
+	zoneDivideNext   = "settings:divide:next"
+	zoneCountDec     = "settings:count:dec"
+	zoneCountInc     = "settings:count:inc"
+	zoneApply        = "settings:apply"
+	zoneBack         = "settings:back"
 )
 
 func (m Model) View() string {
@@ -23,18 +30,10 @@ func (m Model) View() string {
 
 	b.WriteString(ui.Title.Render("Настройки тренировки") + "\n")
 	b.WriteString(ui.Subtitle.Render("Параметры сессии перед стартом") + "\n\n")
-	b.WriteString(
-		settingLine(
-			m.cursor == rowDifficulty,
-			"Сложность",
-			fmt.Sprintf(
-				"%s %s %s",
-				zone.Mark(zoneDifficultyPrev, ui.SmallButton("←", m.cursor == rowDifficulty)),
-				ui.Value.Render(shared.DifficultyLabel(m.settings.Difficulty)),
-				zone.Mark(zoneDifficultyNext, ui.SmallButton("→", m.cursor == rowDifficulty)),
-			),
-		) + "\n",
-	)
+	b.WriteString(m.operationLine(m.cursor == rowAddDifficulty, "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext) + "\n")
+	b.WriteString(m.operationLine(m.cursor == rowSubtractDifficulty, "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext) + "\n")
+	b.WriteString(m.operationLine(m.cursor == rowMultiplyDifficulty, "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext) + "\n")
+	b.WriteString(m.operationLine(m.cursor == rowDivideDifficulty, "Деление", m.settings.DivideDifficulty, zoneDividePrev, zoneDivideNext) + "\n")
 	b.WriteString(
 		settingLine(
 			m.cursor == rowExamplesCount,
@@ -52,6 +51,16 @@ func (m Model) View() string {
 	b.WriteString(zone.Mark(zoneBack, ui.Button("Назад", m.cursor == rowBack)))
 
 	return b.String()
+}
+
+func (m Model) operationLine(active bool, label string, difficulty mathmodels.Difficulty, prevZone, nextZone string) string {
+	value := fmt.Sprintf(
+		"%s %s %s",
+		zone.Mark(prevZone, ui.SmallButton("←", active)),
+		ui.Value.Render(shared.DifficultyLabel(difficulty)),
+		zone.Mark(nextZone, ui.SmallButton("→", active)),
+	)
+	return settingLine(active, label, value)
 }
 
 func settingLine(active bool, label string, value string) string {
