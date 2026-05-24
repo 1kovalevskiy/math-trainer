@@ -22,3 +22,11 @@ func InZone(id string, msg tea.MouseMsg) bool {
 	zoneInfo := zone.Get(id)
 	return zoneInfo != nil && zoneInfo.InBounds(msg)
 }
+
+func IsWheelUp(msg tea.MouseMsg) bool {
+	return msg.Button == tea.MouseButtonWheelUp || msg.Type == tea.MouseWheelUp
+}
+
+func IsWheelDown(msg tea.MouseMsg) bool {
+	return msg.Button == tea.MouseButtonWheelDown || msg.Type == tea.MouseWheelDown
+}

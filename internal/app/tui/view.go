@@ -34,6 +34,12 @@ func (m Model) View() string {
 		panelHeight = 1
 	}
 
+	if m.screen == ScreenResult {
+		content = m.resultModel.ViewWithSize(panelWidth, contentHeightForScreen(screenHints(m.screen), panelHeight))
+		content = renderScreenContentNoFit(content, screenHints(m.screen), panelWidth, panelHeight)
+		return zone.Scan(ui.Panel.Width(panelWidth).Height(panelHeight).Render(content))
+	}
+
 	content = renderScreenContent(content, screenHints(m.screen), panelWidth, panelHeight)
 
 	return zone.Scan(ui.Panel.Width(panelWidth).Height(panelHeight).Render(content))

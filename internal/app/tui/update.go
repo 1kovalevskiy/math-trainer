@@ -8,6 +8,7 @@ import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/settings"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/start"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/task"
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -17,6 +18,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = typedMsg.Width
 		m.height = typedMsg.Height
+		if m.screen == ScreenResult {
+			panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
+			panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
+			if panelWidth < 1 {
+				panelWidth = 1
+			}
+			if panelHeight < 1 {
+				panelHeight = 1
+			}
+			m.resultModel = m.resultModel.WithViewport(panelWidth, contentHeightForScreen(screenHints(ScreenResult), panelHeight))
+		}
 	case tea.KeyMsg:
 		if typedMsg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -99,6 +111,17 @@ func (m Model) applySnapshot(snapshot mathmodels.TrainingSnapshot) Model {
 		m.screen = ScreenTask
 	case mathmodels.TrainingPhaseFinished:
 		m.resultModel = result.NewModel().WithSummary(snapshot.Summary)
+		if m.width > 0 && m.height > 0 {
+			panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
+			panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
+			if panelWidth < 1 {
+				panelWidth = 1
+			}
+			if panelHeight < 1 {
+				panelHeight = 1
+			}
+			m.resultModel = m.resultModel.WithViewport(panelWidth, contentHeightForScreen(screenHints(ScreenResult), panelHeight))
+		}
 		m.screen = ScreenResult
 	default:
 		m.screen = ScreenStart

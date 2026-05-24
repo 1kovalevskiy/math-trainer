@@ -53,6 +53,60 @@ func renderScreenContent(content string, hints []string, width int, height int) 
 	}, "\n")
 }
 
+func renderScreenContentNoFit(content string, hints []string, width int, height int) string {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+
+	hintArea := renderHintArea(hints, width)
+	hintHeight := hintAreaHeight
+	bottomPadding := hintBottomPadding
+	if strings.TrimSpace(hintArea) == "" {
+		hintHeight = 0
+		bottomPadding = 0
+	}
+
+	contentHeight := height - hintHeight - bottomPadding
+	if contentHeight < 1 {
+		contentHeight = 1
+		bottomPadding = 0
+	}
+
+	body := lipgloss.Place(
+		width,
+		contentHeight,
+		lipgloss.Left,
+		lipgloss.Top,
+		content,
+	)
+	if hintHeight == 0 {
+		return body
+	}
+
+	return strings.Join([]string{
+		body,
+		hintArea,
+		lipgloss.NewStyle().Width(width).Render(""),
+	}, "\n")
+}
+
+func contentHeightForScreen(hints []string, panelHeight int) int {
+	hintHeight := 0
+	bottomPadding := 0
+	if len(hints) > 0 {
+		hintHeight = hintAreaHeight
+		bottomPadding = hintBottomPadding
+	}
+	contentHeight := panelHeight - hintHeight - bottomPadding
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+	return contentHeight
+}
+
 func renderHintArea(hints []string, width int) string {
 	return lipgloss.Place(
 		width,
@@ -133,7 +187,10 @@ func screenHints(screen Screen) []string {
 			"S - пропустить, Esc - в меню, Click - мышь",
 		}
 	case ScreenResult:
-		return []string{"←/→ - выбор, Enter - подтвердить"}
+		return []string{
+			"↑/↓, j/k, колесо - прокрутка; PgUp/PgDn, Home/End - быстро",
+			"←/→ - выбор кнопки, Enter - подтвердить",
+		}
 	default:
 		return nil
 	}

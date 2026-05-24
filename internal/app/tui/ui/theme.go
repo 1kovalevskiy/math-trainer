@@ -42,11 +42,13 @@ var (
 			Bold(true).
 			Foreground(lipgloss.Color("230")).
 			Background(lipgloss.Color("62")).
+			Align(lipgloss.Center).
 			Padding(0, 2)
 
 	buttonInactive = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
 			Background(lipgloss.Color("238")).
+			Align(lipgloss.Center).
 			Padding(0, 2)
 
 	smallButtonActive = lipgloss.NewStyle().
@@ -65,12 +67,27 @@ func MenuItem(active bool, text string) string {
 	return Button(text, active)
 }
 
+func MenuItemFixed(active bool, text string, width int) string {
+	return ButtonFixed(text, active, width)
+}
+
 func Button(text string, active bool) string {
 	if active {
 		return buttonActive.Render(text)
 	}
 
 	return buttonInactive.Render(text)
+}
+
+func ButtonFixed(text string, active bool, width int) string {
+	if width < 1 {
+		width = 1
+	}
+	if active {
+		return buttonActive.Width(width).Render(text)
+	}
+
+	return buttonInactive.Width(width).Render(text)
 }
 
 func SmallButton(text string, active bool) string {
