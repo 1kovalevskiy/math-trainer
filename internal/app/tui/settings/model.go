@@ -23,6 +23,7 @@ type Model struct {
 	cursor   int
 	settings mathmodels.TrainingSettings
 	rules    rules
+	errText  string
 }
 
 func NewModel(settings mathmodels.TrainingSettings, rules rules) Model {
@@ -30,4 +31,9 @@ func NewModel(settings mathmodels.TrainingSettings, rules rules) Model {
 		settings = rules.NormalizeSettings(settings)
 	}
 	return Model{cursor: rowAddDifficulty, settings: settings, rules: rules}
+}
+
+func (m Model) WithError(text string) Model {
+	m.errText = text
+	return m
 }

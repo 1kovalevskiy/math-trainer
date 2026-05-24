@@ -11,9 +11,16 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type TrainingSettings = mathmodels.TrainingSettings
+
+type trainingSettingsStore interface {
+	SaveTrainingSettings(ctx context.Context, settings TrainingSettings) error
+}
+
 type Model struct {
 	ctx            context.Context
 	mathController mathController
+	settingsStore  trainingSettingsStore
 	screen         Screen
 	settings       mathmodels.TrainingSettings
 	width          int
@@ -25,14 +32,8 @@ type Model struct {
 	resultModel   result.Model
 }
 
-func NewModel(ctx context.Context, mathController mathController) Model {
-	defaultSettings := mathmodels.TrainingSettings{
-		AddDifficulty:      mathmodels.DifficultyEasy,
-		SubtractDifficulty: mathmodels.DifficultyEasy,
-		MultiplyDifficulty: mathmodels.DifficultyDisabled,
-		DivideDifficulty:   mathmodels.DifficultyDisabled,
-		ExamplesCount:      mathmodels.DefaultExamplesCount,
-	}
+func NewModel(ctx context.Context, mathController mathController, settingsStore trainingSettingsStore) Model {
+	defaultSettings := mathmodels.DefaultTrainingSettings()
 	if mathController != nil {
 		defaultSettings = mathController.GetDefaultSettings()
 	}
@@ -40,6 +41,7 @@ func NewModel(ctx context.Context, mathController mathController) Model {
 	return Model{
 		ctx:            ctx,
 		mathController: mathController,
+		settingsStore:  settingsStore,
 		screen:         ScreenStart,
 		settings:       defaultSettings,
 		startModel:     start.NewModel(),

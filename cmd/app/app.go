@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/1kovalevskiy/math-trainer/internal/configs"
 	mathController "github.com/1kovalevskiy/math-trainer/internal/controllers/math"
+	configmodel "github.com/1kovalevskiy/math-trainer/internal/models/config"
 	mathMemory "github.com/1kovalevskiy/math-trainer/internal/storages/memory/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -22,7 +22,8 @@ type closer struct {
 }
 
 type App struct {
-	cfg            *config.Config
+	cfg            *configmodel.Config
+	configPath     string
 	logger         *slog.Logger
 	mathStorage    *mathMemory.Storage
 	mathController *mathController.Controller

@@ -20,14 +20,16 @@ type ExerciseGenerator func(settings mathmodels.TrainingSettings) (mathmodels.Ex
 type Option func(*Controller)
 
 type Controller struct {
-	storage  trainingStorage
-	generate ExerciseGenerator
+	storage         trainingStorage
+	generate        ExerciseGenerator
+	defaultSettings mathmodels.TrainingSettings
 }
 
 func New(storage trainingStorage, opts ...Option) *Controller {
 	controller := &Controller{
-		storage:  storage,
-		generate: generateExercise,
+		storage:         storage,
+		generate:        generateExercise,
+		defaultSettings: mathmodels.DefaultTrainingSettings(),
 	}
 
 	for _, opt := range opts {
@@ -35,6 +37,8 @@ func New(storage trainingStorage, opts ...Option) *Controller {
 			opt(controller)
 		}
 	}
+
+	controller.defaultSettings = controller.NormalizeSettings(controller.defaultSettings)
 
 	return controller
 }

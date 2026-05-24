@@ -12,16 +12,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if !shared.IsLeftClick(typedMsg) {
 			return m, nil
 		}
+		m.errText = ""
 		return m.handleMouseClick(typedMsg)
 	case tea.KeyMsg:
 		switch typedMsg.String() {
 		case "up", "k":
+			m.errText = ""
 			m = m.moveCursorUp()
 		case "down", "j":
+			m.errText = ""
 			m = m.moveCursorDown()
 		case "left", "h":
+			m.errText = ""
 			m = m.decrementCurrent()
 		case "right", "l":
+			m.errText = ""
 			m = m.incrementCurrent()
 		case "enter":
 			switch m.cursor {

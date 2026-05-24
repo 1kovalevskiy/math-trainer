@@ -49,7 +49,7 @@ func newSession(t *testing.T, exercises ...mathmodels.Exercise) *session {
 	store := mathmemory.New()
 	gen := newExerciseGenerator(exercises...)
 	controller := mathcontroller.New(store, mathcontroller.WithExerciseGenerator(gen.Generate))
-	probe := newProbeModel(tui.NewModel(ctx, controller))
+	probe := newProbeModel(tui.NewModel(ctx, controller, nil))
 	program := tea.NewProgram(
 		probe,
 		tea.WithInput(nil),

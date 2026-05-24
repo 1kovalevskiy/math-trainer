@@ -30,9 +30,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case start.QuitMsg:
 		return m, tea.Quit
 	case settings.ApplySettingsMsg:
-		m.settings = m.mathController.NormalizeSettings(typedMsg.Settings)
-		m.screen = ScreenStart
-		return m, nil
+		normalized := m.mathController.NormalizeSettings(typedMsg.Settings)
+		return m, persistSettingsCmd(m.ctx, m.settingsStore, normalized)
 	case settings.BackMsg:
 		m.screen = ScreenStart
 		return m, nil
@@ -58,6 +57,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m.applySnapshot(typedMsg.snapshot), nil
+	case persistSettingsMsg:
+		if typedMsg.err != nil {
+			m.settingsModel = m.settingsModel.WithError(errorText(typedMsg.err))
+			m.screen = ScreenSettings
+			return m, nil
+		}
+		m.settings = typedMsg.settings
+		m.settingsModel = settings.NewModel(m.settings, m.mathController)
+		m.screen = ScreenStart
+		return m, nil
 	case cancelTrainingMsg:
 		return m, nil
 	}

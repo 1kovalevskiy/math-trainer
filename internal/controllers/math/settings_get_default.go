@@ -3,11 +3,9 @@ package mathcontroller
 import mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 
 func (c *Controller) GetDefaultSettings() mathmodels.TrainingSettings {
-	return mathmodels.TrainingSettings{
-		AddDifficulty:      mathmodels.DifficultyEasy,
-		SubtractDifficulty: mathmodels.DifficultyEasy,
-		MultiplyDifficulty: mathmodels.DifficultyDisabled,
-		DivideDifficulty:   mathmodels.DifficultyDisabled,
-		ExamplesCount:      mathmodels.DefaultExamplesCount,
+	if c == nil {
+		return mathmodels.DefaultTrainingSettings()
 	}
+
+	return c.NormalizeSettings(c.defaultSettings)
 }

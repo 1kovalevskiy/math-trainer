@@ -30,6 +30,9 @@ func (m Model) View() string {
 
 	b.WriteString(ui.Title.Render("Настройки тренировки") + "\n")
 	b.WriteString(ui.Subtitle.Render("Параметры сессии перед стартом") + "\n\n")
+	if m.errText != "" {
+		b.WriteString(ui.Error.Render(m.errText) + "\n\n")
+	}
 	b.WriteString(m.operationLine(m.cursor == rowAddDifficulty, "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext) + "\n")
 	b.WriteString(m.operationLine(m.cursor == rowSubtractDifficulty, "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext) + "\n")
 	b.WriteString(m.operationLine(m.cursor == rowMultiplyDifficulty, "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext) + "\n")

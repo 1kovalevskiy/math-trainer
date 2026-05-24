@@ -16,6 +16,11 @@ type cancelTrainingMsg struct {
 	err error
 }
 
+type persistSettingsMsg struct {
+	settings mathmodels.TrainingSettings
+	err      error
+}
+
 func startTrainingCmd(
 	ctx context.Context,
 	controller mathController,
@@ -44,5 +49,15 @@ func skipCurrentCmd(ctx context.Context, controller mathController) tea.Cmd {
 func cancelTrainingCmd(ctx context.Context, controller mathController) tea.Cmd {
 	return func() tea.Msg {
 		return cancelTrainingMsg{err: controller.CancelTraining(ctx)}
+	}
+}
+
+func persistSettingsCmd(ctx context.Context, store trainingSettingsStore, settings mathmodels.TrainingSettings) tea.Cmd {
+	return func() tea.Msg {
+		if store == nil {
+			return persistSettingsMsg{settings: settings}
+		}
+
+		return persistSettingsMsg{settings: settings, err: store.SaveTrainingSettings(ctx, settings)}
 	}
 }

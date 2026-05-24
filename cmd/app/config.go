@@ -4,28 +4,22 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/1kovalevskiy/math-trainer/internal/configs"
+	config "github.com/1kovalevskiy/math-trainer/internal/configs"
 )
 
 func (a *App) initConfig() error {
-	configPath := os.Getenv("APP_CONFIG_PATH")
-	if configPath != "" {
-		cfg, err := config.NewConfig(configPath)
-		if err != nil {
-			return fmt.Errorf("load config from APP_CONFIG_PATH: %w", err)
-		}
-		a.cfg = cfg
-		return nil
+	configPath, err := config.ResolvePath(os.Getenv("APP_CONFIG_PATH"))
+	if err != nil {
+		return fmt.Errorf("resolve config path: %w", err)
 	}
 
-	logLevel := os.Getenv("APP_LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "INFO"
+	cfg, err := config.LoadOrCreate(configPath)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
 	}
 
-	a.cfg = &config.Config{
-		App: config.App{LogLevel: logLevel},
-	}
+	a.configPath = configPath
+	a.cfg = cfg
 
 	return nil
 }

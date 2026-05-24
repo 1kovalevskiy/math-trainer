@@ -37,6 +37,7 @@ func TestIntegrationTrainingFlow_DivisionOnly(t *testing.T) {
 	s.key(t, "down")
 	s.key(t, "down")
 	s.key(t, "enter")
+	s.eventuallyViewContains(t, "Математический тренажер")
 
 	s.key(t, "up")
 	s.key(t, "enter")
