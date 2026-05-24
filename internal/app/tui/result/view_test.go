@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -69,6 +70,44 @@ func TestViewWithSizeShowsScrollbarWhenStillOverflowing(t *testing.T) {
 	}
 }
 
+func TestViewWithSizePlacesScrollbarAtRightEdge(t *testing.T) {
+	t.Parallel()
+
+	width := 70
+	view := NewModel().WithSummary(testSummary(40)).ViewWithSize(width, 10)
+
+	found := false
+	for _, line := range strings.Split(view, "\n") {
+		if !strings.Contains(line, "█") && !strings.Contains(line, "│") {
+			continue
+		}
+		found = true
+		if lineWidth := ui.Width(line); lineWidth != width {
+			t.Fatalf("scrollbar line width mismatch: got %d, want %d, line=%q", lineWidth, width, line)
+		}
+		trimmed := strings.TrimRight(line, " ")
+		if !strings.HasSuffix(trimmed, "█") && !strings.HasSuffix(trimmed, "│") {
+			t.Fatalf("expected scrollbar at right edge, got %q", line)
+		}
+	}
+	if !found {
+		t.Fatal("expected scrollbar line")
+	}
+}
+
+func TestViewWithSizeDoesNotOverflowRequestedWidth(t *testing.T) {
+	t.Parallel()
+
+	width := 80
+	view := NewModel().WithSummary(testSummaryWithWideEntries(10)).ViewWithSize(width, 24)
+
+	for _, line := range strings.Split(view, "\n") {
+		if lineWidth := ui.Width(line); lineWidth > width {
+			t.Fatalf("line overflows requested width: got %d, want <= %d, line=%q", lineWidth, width, line)
+		}
+	}
+}
+
 func TestViewWithSizeShowsEmptyFallback(t *testing.T) {
 	t.Parallel()
 
@@ -76,6 +115,85 @@ func TestViewWithSizeShowsEmptyFallback(t *testing.T) {
 	view := model.ViewWithSize(60, 10)
 	if !strings.Contains(view, "Нет ответов") {
 		t.Fatalf("expected empty fallback, got %q", view)
+	}
+}
+
+func TestViewWithSizeVerticallyCentersResultsWhenTheyFit(t *testing.T) {
+	t.Parallel()
+
+	model := NewModel().WithSummary(testSummary(3))
+	view := model.ViewWithSize(100, 30)
+	lines := strings.Split(view, "\n")
+
+	resultLine := -1
+	for i, line := range lines {
+		if strings.Contains(line, "1)") && strings.Contains(line, "2)") && strings.Contains(line, "3)") {
+			resultLine = i
+			break
+		}
+	}
+	if resultLine == -1 {
+		t.Fatalf("result row not found in view: %q", view)
+	}
+	if resultLine <= 10 {
+		t.Fatalf("expected results to be vertically centered lower in viewport, got line %d", resultLine)
+	}
+}
+
+func TestRenderGridRowsAddsSpaceBetweenResultRows(t *testing.T) {
+	t.Parallel()
+
+	rows := NewModel().renderGridRows([]string{"1", "2", "3", "4", "5", "6"}, 3, 2, 1, 9)
+	if len(rows) != 3 {
+		t.Fatalf("rows length mismatch: got %d, want 3", len(rows))
+	}
+	if rows[1] != "" {
+		t.Fatalf("expected blank row gap, got %q", rows[1])
+	}
+}
+
+func TestRenderGridRowsCentersSingleItemLastRow(t *testing.T) {
+	t.Parallel()
+
+	contentWidth := 12
+	rows := NewModel().renderGridRows([]string{"1", "2", "3", "4", "5", "6", "7"}, 3, 3, 1, contentWidth)
+	last := rows[len(rows)-1]
+
+	if strings.TrimSpace(last) != "7" {
+		t.Fatalf("last row mismatch: got %q", last)
+	}
+	if left, right := sidePadding(last); abs(left-right) > 1 {
+		t.Fatalf("expected centered last row, got left=%d right=%d line=%q", left, right, last)
+	}
+}
+
+func TestRenderGridRowsCentersTwoItemLastRowAsGroup(t *testing.T) {
+	t.Parallel()
+
+	contentWidth := 12
+	rows := NewModel().renderGridRows([]string{"1", "2", "3", "4", "5", "6", "7", "8"}, 3, 3, 1, contentWidth)
+	last := rows[len(rows)-1]
+
+	if !strings.Contains(last, "7") || !strings.Contains(last, "8") {
+		t.Fatalf("expected last row to contain 7 and 8, got %q", last)
+	}
+	if left, right := sidePadding(last); abs(left-right) > 1 {
+		t.Fatalf("expected centered two-item group, got left=%d right=%d line=%q", left, right, last)
+	}
+}
+
+func TestRenderGridRowsCentersSingleItemLastRowInTwoColumnGrid(t *testing.T) {
+	t.Parallel()
+
+	contentWidth := 8
+	rows := NewModel().renderGridRows([]string{"1", "2", "3"}, 2, 2, 1, contentWidth)
+	last := rows[len(rows)-1]
+
+	if strings.TrimSpace(last) != "3" {
+		t.Fatalf("last row mismatch: got %q", last)
+	}
+	if left, right := sidePadding(last); abs(left-right) > 1 {
+		t.Fatalf("expected centered single item in two-column grid, got left=%d right=%d line=%q", left, right, last)
 	}
 }
 
@@ -134,4 +252,17 @@ func findLineWithAll(view string, parts []string) string {
 		}
 	}
 	return ""
+}
+
+func sidePadding(line string) (int, int) {
+	left := len(line) - len(strings.TrimLeft(line, " "))
+	right := ui.Width(line) - ui.Width(strings.TrimRight(line, " "))
+	return left, right
+}
+
+func abs(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
 }

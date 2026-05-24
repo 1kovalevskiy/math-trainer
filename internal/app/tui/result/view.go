@@ -11,7 +11,11 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-const maxResultColumns = 3
+const (
+	maxResultColumns = 3
+	resultColumnGap  = 3
+	resultRowGap     = 1
+)
 
 var (
 	expressionStyle = lipgloss.NewStyle().Bold(true)
@@ -32,24 +36,14 @@ func (m Model) ViewWithSize(width int, height int) string {
 		height = 1
 	}
 
-	headerLines := []string{
-		ui.Title.Render("Результаты тренировки"),
-		ui.Subtitle.Render("Сводка по всем примерам"),
-		"",
-		ui.Label.Render("Сложности: ") + ui.Value.Render(settingsDifficultySummary(m.summary.Settings)),
-		ui.Accent.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, m.summary.Total)),
-		"",
-	}
+	headerLines := m.renderHeaderLines()
 	actionsLine := m.renderActionButtons()
 
 	headerHeight := len(headerLines)
 	actionsHeight := 1
-	resultsHeight := height - headerHeight - actionsHeight
-	if resultsHeight < 1 {
-		resultsHeight = 1
-	}
+	resultsHeight := m.resultsViewportHeight(height)
 
-	viewModel := m.WithViewport(width, resultsHeight)
+	viewModel := m.WithContentSize(width, height)
 	viewModel.refreshScrollBounds()
 	resultsBlock := viewModel.renderResultsBlock(width, resultsHeight)
 
@@ -66,10 +60,30 @@ func (m Model) ViewWithSize(width int, height int) string {
 	}
 
 	for i := range lines {
-		lines[i] = lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(lines[i])
+		lines[i] = ui.PadCenter(lines[i], width)
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func (m Model) renderHeaderLines() []string {
+	return []string{
+		ui.Title.Render("Результаты тренировки"),
+		ui.Subtitle.Render("Сводка по всем примерам"),
+		"",
+		ui.Label.Render("Сложности: ") + ui.Value.Render(settingsDifficultySummary(m.summary.Settings)),
+		ui.Accent.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, m.summary.Total)),
+		"",
+	}
+}
+
+func (m Model) resultsViewportHeight(contentHeight int) int {
+	resultsHeight := contentHeight - len(m.renderHeaderLines()) - 1
+	if resultsHeight < 1 {
+		return 1
+	}
+
+	return resultsHeight
 }
 
 func (m Model) renderResultsBlock(width int, viewportHeight int) string {
@@ -79,8 +93,8 @@ func (m Model) renderResultsBlock(width int, viewportHeight int) string {
 	}
 
 	if len(entries) == 0 {
-		line := lipgloss.NewStyle().Width(width).Render(ui.Hint.Render("Нет ответов"))
-		return strings.Join(fillLines([]string{line}, viewportHeight), "\n")
+		line := ui.Hint.Render("Нет ответов")
+		return strings.Join(centerLines([]string{line}, viewportHeight), "\n")
 	}
 
 	entryWidth := 1
@@ -99,38 +113,60 @@ func (m Model) renderResultsBlock(width int, viewportHeight int) string {
 	visible := cropRows(rowLines, offset, viewportHeight)
 
 	if layout.ShowScrollbar {
-		visible = addVerticalScrollbar(visible, layout.ContentWidth, viewportHeight, offset, layout.ContentRows)
+		visible = addVerticalScrollbar(visible, width, viewportHeight, offset, layout.ContentRows)
+		return strings.Join(fillLines(visible, viewportHeight), "\n")
 	}
 
-	return strings.Join(fillLines(visible, viewportHeight), "\n")
+	return strings.Join(centerLines(visible, viewportHeight), "\n")
 }
 
 func (m Model) gridLayout(width int, viewportHeight int, total int, entryWidth int) ui.GridLayout {
 	return ui.BuildGridLayout(width, viewportHeight, total, entryWidth, ui.GridOptions{
 		MaxColumns:       maxResultColumns,
 		PreferredColumns: maxResultColumns,
-		ColumnGap:        3,
+		ColumnGap:        resultColumnGap,
+		RowGap:           resultRowGap,
 		ScrollbarWidth:   2,
 	})
 }
 
 func (m Model) renderGridRows(entries []string, columns int, rows int, entryWidth int, contentWidth int) []string {
-	columnGap := "   "
-	lines := make([]string, 0, rows)
+	lines := make([]string, 0, rows+(rows-1)*resultRowGap)
 	for row := 0; row < rows; row++ {
-		cells := make([]string, 0, columns)
-		for col := 0; col < columns; col++ {
-			idx := row*columns + col
-			if idx >= len(entries) {
-				cells = append(cells, lipgloss.NewStyle().Width(entryWidth).Render(""))
-				continue
+		if row > 0 {
+			for i := 0; i < resultRowGap; i++ {
+				lines = append(lines, "")
 			}
-			cells = append(cells, lipgloss.NewStyle().Width(entryWidth).Render(entries[idx]))
 		}
-		line := strings.Join(cells, columnGap)
-		lines = append(lines, lipgloss.NewStyle().Width(contentWidth).Render(line))
+
+		line := renderGridRow(entries, row, columns, entryWidth, contentWidth)
+		lines = append(lines, line)
 	}
 	return lines
+}
+
+func renderGridRow(entries []string, row int, columns int, entryWidth int, contentWidth int) string {
+	start := row * columns
+	if start >= len(entries) {
+		return ""
+	}
+
+	count := columns
+	if remaining := len(entries) - start; remaining < count {
+		count = remaining
+	}
+
+	cells := make([]string, 0, count)
+	for col := 0; col < count; col++ {
+		cells = append(cells, ui.PadRight(entries[start+col], entryWidth))
+	}
+
+	line := strings.Join(cells, strings.Repeat(" ", resultColumnGap))
+	if count < columns {
+		return ui.PadCenter(line, contentWidth)
+	}
+
+	return ui.PadRight(line, contentWidth)
 }
 
 func (m Model) renderActionButtons() string {
@@ -201,7 +237,21 @@ func fillLines(lines []string, height int) []string {
 	return lines
 }
 
-func addVerticalScrollbar(lines []string, contentWidth int, viewportHeight int, offset int, totalRows int) []string {
+func centerLines(lines []string, height int) []string {
+	if len(lines) >= height {
+		return lines
+	}
+
+	top := (height - len(lines)) / 2
+	centered := make([]string, 0, height)
+	for i := 0; i < top; i++ {
+		centered = append(centered, "")
+	}
+	centered = append(centered, lines...)
+	return fillLines(centered, height)
+}
+
+func addVerticalScrollbar(lines []string, viewportWidth int, viewportHeight int, offset int, totalRows int) []string {
 	if viewportHeight < 1 {
 		return lines
 	}
@@ -224,7 +274,11 @@ func addVerticalScrollbar(lines []string, contentWidth int, viewportHeight int, 
 		if i >= thumbTop && i < thumbTop+thumbHeight {
 			glyph = "█"
 		}
-		res = append(res, lipgloss.NewStyle().Width(contentWidth).Render(line)+" "+glyph)
+		centered := ui.PadCenter(line, viewportWidth)
+		if strings.HasSuffix(centered, " ") {
+			centered = centered[:len(centered)-1]
+		}
+		res = append(res, centered+glyph)
 	}
 
 	return res

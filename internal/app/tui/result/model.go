@@ -78,6 +78,10 @@ func (m Model) WithViewport(width int, height int) Model {
 	return m
 }
 
+func (m Model) WithContentSize(width int, height int) Model {
+	return m.WithViewport(width, m.resultsViewportHeight(height))
+}
+
 func (m *Model) refreshScrollBounds() {
 	viewportHeight := m.viewportHeight
 	if viewportHeight < 1 {

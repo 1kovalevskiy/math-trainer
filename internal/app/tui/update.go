@@ -19,15 +19,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = typedMsg.Width
 		m.height = typedMsg.Height
 		if m.screen == ScreenResult {
-			panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
-			panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
-			if panelWidth < 1 {
-				panelWidth = 1
-			}
-			if panelHeight < 1 {
-				panelHeight = 1
-			}
-			m.resultModel = m.resultModel.WithViewport(panelWidth, contentHeightForScreen(screenHints(ScreenResult), panelHeight))
+			m.resultModel = m.resultModelWithCurrentViewport(m.resultModel)
 		}
 	case tea.KeyMsg:
 		if typedMsg.String() == "ctrl+c" {
@@ -92,6 +84,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ScreenTask:
 		m.taskModel, cmd = m.taskModel.Update(msg)
 	case ScreenResult:
+		m.resultModel = m.resultModelWithCurrentViewport(m.resultModel)
 		m.resultModel, cmd = m.resultModel.Update(msg)
 	}
 
@@ -111,23 +104,31 @@ func (m Model) applySnapshot(snapshot mathmodels.TrainingSnapshot) Model {
 		m.screen = ScreenTask
 	case mathmodels.TrainingPhaseFinished:
 		m.resultModel = result.NewModel().WithSummary(snapshot.Summary)
-		if m.width > 0 && m.height > 0 {
-			panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
-			panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
-			if panelWidth < 1 {
-				panelWidth = 1
-			}
-			if panelHeight < 1 {
-				panelHeight = 1
-			}
-			m.resultModel = m.resultModel.WithViewport(panelWidth, contentHeightForScreen(screenHints(ScreenResult), panelHeight))
-		}
+		m.resultModel = m.resultModelWithCurrentViewport(m.resultModel)
 		m.screen = ScreenResult
 	default:
 		m.screen = ScreenStart
 	}
 
 	return m
+}
+
+func (m Model) resultModelWithCurrentViewport(resultModel result.Model) result.Model {
+	if m.width <= 0 || m.height <= 0 {
+		return resultModel
+	}
+
+	panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
+	panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
+	if panelWidth < 1 {
+		panelWidth = 1
+	}
+	if panelHeight < 1 {
+		panelHeight = 1
+	}
+
+	contentHeight := contentHeightForScreen(screenHints(ScreenResult), panelHeight)
+	return resultModel.WithContentSize(panelWidth, contentHeight)
 }
 
 func errorText(err error) string {

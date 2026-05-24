@@ -6,6 +6,7 @@ type GridOptions struct {
 	MaxColumns       int
 	PreferredColumns int
 	ColumnGap        int
+	RowGap           int
 	ScrollbarWidth   int
 }
 
@@ -30,6 +31,9 @@ func BuildGridLayout(width int, viewportRows int, totalItems int, itemWidth int,
 	if options.ColumnGap < 0 {
 		options.ColumnGap = 0
 	}
+	if options.RowGap < 0 {
+		options.RowGap = 0
+	}
 	if options.ScrollbarWidth < 0 {
 		options.ScrollbarWidth = 0
 	}
@@ -47,11 +51,12 @@ func BuildGridLayout(width int, viewportRows int, totalItems int, itemWidth int,
 	}
 
 	rows := ceilDiv(totalItems, columns)
-	if rows <= viewportRows {
+	contentRows := gridContentRows(rows, options.RowGap)
+	if contentRows <= viewportRows {
 		return GridLayout{
 			Columns:      columns,
 			Rows:         rows,
-			ContentRows:  rows,
+			ContentRows:  contentRows,
 			ContentWidth: gridContentWidth(columns, itemWidth, options.ColumnGap),
 		}
 	}
@@ -66,13 +71,14 @@ func BuildGridLayout(width int, viewportRows int, totalItems int, itemWidth int,
 		if adjustedColumns < columns {
 			columns = adjustedColumns
 			rows = ceilDiv(totalItems, columns)
+			contentRows = gridContentRows(rows, options.RowGap)
 		}
 	}
 
 	return GridLayout{
 		Columns:       columns,
 		Rows:          rows,
-		ContentRows:   rows,
+		ContentRows:   contentRows,
 		ContentWidth:  gridContentWidth(columns, itemWidth, options.ColumnGap),
 		ShowScrollbar: true,
 	}
@@ -92,6 +98,14 @@ func gridContentWidth(columns int, itemWidth int, gap int) int {
 	}
 
 	return columns*itemWidth + (columns-1)*gap
+}
+
+func gridContentRows(rows int, gap int) int {
+	if rows < 1 {
+		return 0
+	}
+
+	return rows + (rows-1)*gap
 }
 
 func ceilDiv(a int, b int) int {
