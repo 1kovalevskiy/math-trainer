@@ -18,11 +18,15 @@ const (
 )
 
 var (
-	resultSurfaceStyle = lipgloss.NewStyle().Background(ui.PanelBackgroundColor)
-	expressionStyle    = lipgloss.NewStyle().Bold(true)
-	correctStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	incorrectStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Strikethrough(true).Bold(true)
-	skippedStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Bold(true)
+	resultSurfaceStyle  = lipgloss.NewStyle().Background(ui.PanelBackgroundColor)
+	resultSubtitleStyle = ui.Subtitle.Copy().Background(ui.PanelBackgroundColor)
+	resultLabelStyle    = ui.Label.Copy().Background(ui.PanelBackgroundColor)
+	resultValueStyle    = ui.Value.Copy().Background(ui.PanelBackgroundColor)
+	resultAccentStyle   = ui.Accent.Copy().Background(ui.PanelBackgroundColor)
+	expressionStyle     = resultSurfaceStyle.Copy().Bold(true)
+	correctStyle        = resultSurfaceStyle.Copy().Foreground(lipgloss.Color("10")).Bold(true)
+	incorrectStyle      = resultSurfaceStyle.Copy().Foreground(lipgloss.Color("9")).Strikethrough(true).Bold(true)
+	skippedStyle        = resultSurfaceStyle.Copy().Foreground(lipgloss.Color("8")).Bold(true)
 )
 
 func (m Model) View() string {
@@ -70,10 +74,10 @@ func (m Model) ViewWithSize(width int, height int) string {
 func (m Model) renderHeaderLines() []string {
 	return []string{
 		ui.Title.Render("Результаты тренировки"),
-		ui.Subtitle.Render("Сводка по всем примерам"),
+		resultSubtitleStyle.Render("Сводка по всем примерам"),
 		"",
-		ui.Label.Render("Сложности: ") + ui.Value.Render(settingsDifficultySummary(m.summary.Settings)),
-		ui.Accent.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, m.summary.Total)),
+		resultLabelStyle.Render("Сложности: ") + resultValueStyle.Render(settingsDifficultySummary(m.summary.Settings)),
+		resultAccentStyle.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, m.summary.Total)),
 		"",
 	}
 }
@@ -208,12 +212,12 @@ func renderEntry(entry mathmodels.ExampleResult) string {
 			userAnswer = fmt.Sprintf("%d", *entry.UserAnswer)
 		}
 		return base + incorrectStyle.Render(userAnswer) +
-			fmt.Sprintf(" (ответ: %d)", entry.CorrectAnswer)
+			resultSurfaceStyle.Render(fmt.Sprintf(" (ответ: %d)", entry.CorrectAnswer))
 	case mathmodels.ResultStatusSkipped:
 		return base + skippedStyle.Render("____") +
-			fmt.Sprintf(" (ответ: %d)", entry.CorrectAnswer)
+			resultSurfaceStyle.Render(fmt.Sprintf(" (ответ: %d)", entry.CorrectAnswer))
 	default:
-		return fmt.Sprintf("%d) %s", entry.Order, shared.ExerciseText(entry.Exercise))
+		return resultSurfaceStyle.Render(fmt.Sprintf("%d) %s", entry.Order, shared.ExerciseText(entry.Exercise)))
 	}
 }
 

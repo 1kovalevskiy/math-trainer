@@ -31,7 +31,8 @@ var (
 		Foreground(lipgloss.Color("230"))
 
 	Hint = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("246"))
+		Foreground(lipgloss.Color("246")).
+		Background(PanelBackgroundColor)
 
 	Error = lipgloss.NewStyle().
 		Bold(true).
