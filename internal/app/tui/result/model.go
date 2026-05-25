@@ -17,6 +17,7 @@ const (
 type Model struct {
 	summary mathmodels.TrainingSummary
 	cursor  int
+	focus   ui.LinearFocus
 	options []string
 
 	scrollOffset       int
@@ -27,13 +28,15 @@ type Model struct {
 }
 
 func NewModel() Model {
+	options := []string{
+		"Решить еще один пример",
+		"Настройки сложности",
+		"В главное меню",
+	}
 	return Model{
-		cursor: 0,
-		options: []string{
-			"Решить еще один пример",
-			"Настройки сложности",
-			"В главное меню",
-		},
+		cursor:  0,
+		focus:   ui.NewLinearFocus(0, len(options)-1),
+		options: options,
 	}
 }
 
@@ -42,11 +45,24 @@ func (m Model) WithSummary(summary *mathmodels.TrainingSummary) Model {
 		m.summary = *summary
 	}
 	m.cursor = 0
+	m.focus = ui.NewLinearFocus(0, len(m.options)-1)
 	m.scrollOffset = 0
 	m.lastViewportHeight = 0
 	m.lastContentRows = 0
 	m.viewportWidth = 0
 	m.viewportHeight = 0
+	return m
+}
+
+func (m Model) withCursor(cursor int) Model {
+	m.focus = ui.NewLinearFocus(cursor, len(m.options)-1)
+	m.cursor = m.focus.Index()
+	return m
+}
+
+func (m Model) moveCursor(delta int) Model {
+	m.focus = m.focus.Move(delta)
+	m.cursor = m.focus.Index()
 	return m
 }
 

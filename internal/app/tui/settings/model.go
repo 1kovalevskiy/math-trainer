@@ -8,21 +8,10 @@ type rules interface {
 	GetPreviousDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty
 }
 
-const (
-	rowAddDifficulty = iota
-	rowSubtractDifficulty
-	rowMultiplyDifficulty
-	rowDivideDifficulty
-	rowExamplesCount
-	rowApply
-	rowBack
-	lastRow = rowBack
-)
-
 type Model struct {
-	cursor   int
 	settings mathmodels.TrainingSettings
 	rules    rules
+	focus    settingsFocus
 	errText  string
 }
 
@@ -30,7 +19,7 @@ func NewModel(settings mathmodels.TrainingSettings, rules rules) Model {
 	if rules != nil {
 		settings = rules.NormalizeSettings(settings)
 	}
-	return Model{cursor: rowAddDifficulty, settings: settings, rules: rules}
+	return Model{settings: settings, rules: rules, focus: newSettingsFocus()}
 }
 
 func (m Model) WithError(text string) Model {

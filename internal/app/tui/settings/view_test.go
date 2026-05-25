@@ -20,9 +20,9 @@ func init() {
 func TestViewDifficultyRowsMatchActionButtonsWidth(t *testing.T) {
 	t.Parallel()
 
-	for cursor := rowAddDifficulty; cursor <= rowBack; cursor++ {
+	for _, focus := range allSettingsFocuses() {
 		model := NewModel(mathmodels.DefaultTrainingSettings(), testRules{})
-		model.cursor = cursor
+		model.focus = focus
 		view := model.View()
 		lines := strings.Split(view, "\n")
 
@@ -31,13 +31,13 @@ func TestViewDifficultyRowsMatchActionButtonsWidth(t *testing.T) {
 		for _, label := range labels {
 			line := findLine(lines, label)
 			if line == "" {
-				t.Fatalf("cursor %d: line with %q not found", cursor, label)
+				t.Fatalf("focus %+v: line with %q not found", focus, label)
 			}
 			if strings.Contains(line, "\n") {
-				t.Fatalf("cursor %d: line %q contains newline", cursor, label)
+				t.Fatalf("focus %+v: line %q contains newline", focus, label)
 			}
 			if got := lipgloss.Width(line); got != actionWidth {
-				t.Fatalf("cursor %d: line %q width mismatch: got %d, want %d", cursor, label, got, actionWidth)
+				t.Fatalf("focus %+v: line %q width mismatch: got %d, want %d", focus, label, got, actionWidth)
 			}
 		}
 	}

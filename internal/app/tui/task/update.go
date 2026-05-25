@@ -4,7 +4,6 @@ import (
 	"unicode"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -17,16 +16,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		switch {
 		case shared.InZone(zoneSubmit, typedMsg):
-			m.buttonCursor = buttonSubmit
+			m = m.withButtonCursor(buttonSubmit)
 			if !m.canSubmit() {
 				return m, nil
 			}
 			return m.submitAnswer()
 		case shared.InZone(zoneSkip, typedMsg):
-			m.buttonCursor = buttonSkip
+			m = m.withButtonCursor(buttonSkip)
 			return m.skipCurrent()
 		case shared.InZone(zoneBack, typedMsg):
-			m.buttonCursor = buttonBack
+			m = m.withButtonCursor(buttonBack)
 			return m, emit(BackMsg{})
 		default:
 			return m, nil
@@ -36,13 +35,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "esc":
 			return m, emit(BackMsg{})
 		case "s":
-			m.buttonCursor = buttonSkip
+			m = m.withButtonCursor(buttonSkip)
 			return m.skipCurrent()
 		case "left", "h":
-			m.buttonCursor = ui.MoveIndex(m.buttonCursor, -1, buttonSubmit, lastButton)
+			m = m.moveButtonCursor(-1)
 			return m, nil
 		case "right", "l":
-			m.buttonCursor = ui.MoveIndex(m.buttonCursor, 1, buttonSubmit, lastButton)
+			m = m.moveButtonCursor(1)
 			return m, nil
 		case "backspace":
 			if len(m.input) > 0 {

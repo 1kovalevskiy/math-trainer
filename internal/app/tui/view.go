@@ -6,39 +6,22 @@ import (
 )
 
 func (m Model) View() string {
-	if m.width <= 0 || m.height <= 0 {
-		content := m.viewCurrentScreen(ui.MinPanelContentWidth, ui.MinPanelContentWidth)
-		return zone.Scan(ui.Panel.Render(centerBlock(content, ui.MinPanelContentWidth)))
-	}
-
-	panelWidth := m.width - ui.Panel.GetHorizontalBorderSize()
-	panelHeight := m.height - ui.Panel.GetVerticalBorderSize()
-	if panelWidth < 1 {
-		panelWidth = 1
-	}
-	if panelHeight < 1 {
-		panelHeight = 1
-	}
-
-	contentWidth := panelWidth - ui.Panel.GetHorizontalPadding()
-	contentPanelHeight := panelHeight - ui.Panel.GetVerticalPadding()
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
-	if contentPanelHeight < 1 {
-		contentPanelHeight = 1
+	frame := newPanelFrame(m.width, m.height)
+	if !frame.hasWindowSize {
+		content := m.viewCurrentScreen(frame.contentWidth, frame.contentPanelHeight)
+		return zone.Scan(ui.Panel.Render(centerBlock(content, frame.contentWidth)))
 	}
 
 	chrome := screenChrome(m.screen)
-	contentHeight := contentHeightForScreen(chrome.hints, contentPanelHeight)
-	content := m.viewCurrentScreen(contentWidth, contentHeight)
+	contentHeight := contentHeightForScreen(chrome.hints, frame.contentPanelHeight)
+	content := m.viewCurrentScreen(frame.contentWidth, contentHeight)
 	if chrome.fitContent {
-		content = renderScreenContent(content, chrome.hints, contentWidth, contentPanelHeight)
+		content = renderScreenContent(content, chrome.hints, frame.contentWidth, frame.contentPanelHeight)
 	} else {
-		content = renderScreenContentNoFit(content, chrome.hints, contentWidth, contentPanelHeight)
+		content = renderScreenContentNoFit(content, chrome.hints, frame.contentWidth, frame.contentPanelHeight)
 	}
 
-	return zone.Scan(ui.Panel.Width(panelWidth).Height(panelHeight).Render(content))
+	return zone.Scan(ui.Panel.Width(frame.panelWidth).Height(frame.panelHeight).Render(content))
 }
 
 func (m Model) viewCurrentScreen(width int, height int) string {

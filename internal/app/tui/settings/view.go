@@ -36,8 +36,8 @@ func (m Model) View() string {
 	var b strings.Builder
 	layout := m.makeSettingsLayout()
 	actionsLine := ui.JoinInline([]string{
-		zone.Mark(zoneApply, ui.ButtonFixed("Применить", m.cursor == rowApply, layout.applyWidth)),
-		zone.Mark(zoneBack, ui.ButtonFixed("Назад", m.cursor == rowBack, layout.backWidth)),
+		zone.Mark(zoneApply, ui.ButtonFixed("Применить", m.focus.isAction(actionApply), layout.applyWidth)),
+		zone.Mark(zoneBack, ui.ButtonFixed("Назад", m.focus.isAction(actionBack), layout.backWidth)),
 	}, 1)
 
 	b.WriteString(ui.Title.Render("Настройки тренировки") + "\n")
@@ -45,15 +45,15 @@ func (m Model) View() string {
 	if m.errText != "" {
 		b.WriteString(ui.Error.Render(m.errText) + "\n\n")
 	}
-	b.WriteString(m.operationLine(m.cursor == rowAddDifficulty, "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext, layout) + "\n")
-	b.WriteString(m.operationLine(m.cursor == rowSubtractDifficulty, "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext, layout) + "\n")
-	b.WriteString(m.operationLine(m.cursor == rowMultiplyDifficulty, "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext, layout) + "\n")
-	b.WriteString(m.operationLine(m.cursor == rowDivideDifficulty, "Деление", m.settings.DivideDifficulty, zoneDividePrev, zoneDivideNext, layout) + "\n")
+	b.WriteString(m.operationLine(m.focus.isSetting(settingAddDifficulty), "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext, layout) + "\n")
+	b.WriteString(m.operationLine(m.focus.isSetting(settingSubtractDifficulty), "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext, layout) + "\n")
+	b.WriteString(m.operationLine(m.focus.isSetting(settingMultiplyDifficulty), "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext, layout) + "\n")
+	b.WriteString(m.operationLine(m.focus.isSetting(settingDivideDifficulty), "Деление", m.settings.DivideDifficulty, zoneDividePrev, zoneDivideNext, layout) + "\n")
 	b.WriteString(
 		settingLine(
-			m.cursor == rowExamplesCount,
+			m.focus.isSetting(settingExamplesCount),
 			"Количество примеров",
-			m.countValue(m.cursor == rowExamplesCount),
+			m.countValue(m.focus.isSetting(settingExamplesCount)),
 			layout,
 		) + "\n\n",
 	)
@@ -137,11 +137,11 @@ func settingsRowWidth(labelWidth int, valueWidth int) int {
 
 func (m Model) settingsVisualRowWidth(layout settingsLayout) int {
 	width := settingsRowWidth(layout.row.LabelWidth, layout.row.ValueWidth)
-	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowAddDifficulty, "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext, layout)))
-	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowSubtractDifficulty, "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext, layout)))
-	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowMultiplyDifficulty, "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext, layout)))
-	width = max(width, lipgloss.Width(m.operationLine(m.cursor == rowDivideDifficulty, "Деление", m.settings.DivideDifficulty, zoneDividePrev, zoneDivideNext, layout)))
-	width = max(width, lipgloss.Width(settingLine(m.cursor == rowExamplesCount, "Количество примеров", m.countValue(m.cursor == rowExamplesCount), layout)))
+	width = max(width, lipgloss.Width(m.operationLine(m.focus.isSetting(settingAddDifficulty), "Сложение", m.settings.AddDifficulty, zoneAddPrev, zoneAddNext, layout)))
+	width = max(width, lipgloss.Width(m.operationLine(m.focus.isSetting(settingSubtractDifficulty), "Вычитание", m.settings.SubtractDifficulty, zoneSubtractPrev, zoneSubtractNext, layout)))
+	width = max(width, lipgloss.Width(m.operationLine(m.focus.isSetting(settingMultiplyDifficulty), "Умножение", m.settings.MultiplyDifficulty, zoneMultiplyPrev, zoneMultiplyNext, layout)))
+	width = max(width, lipgloss.Width(m.operationLine(m.focus.isSetting(settingDivideDifficulty), "Деление", m.settings.DivideDifficulty, zoneDividePrev, zoneDivideNext, layout)))
+	width = max(width, lipgloss.Width(settingLine(m.focus.isSetting(settingExamplesCount), "Количество примеров", m.countValue(m.focus.isSetting(settingExamplesCount)), layout)))
 	return width
 }
 
@@ -162,9 +162,9 @@ func (m Model) makeSettingsLayout() settingsLayout {
 	layout.applyWidth, layout.backWidth = ui.StretchTwoButtonWidths(
 		layout.row.RowWidth,
 		"Применить",
-		m.cursor == rowApply,
+		m.focus.isAction(actionApply),
 		"Назад",
-		m.cursor == rowBack,
+		m.focus.isAction(actionBack),
 	)
 
 	return layout
