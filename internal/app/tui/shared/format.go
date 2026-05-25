@@ -10,12 +10,16 @@ func DifficultyLabel(difficulty mathmodels.Difficulty) string {
 	switch difficulty {
 	case mathmodels.DifficultyDisabled:
 		return "Отключено"
+	case mathmodels.DifficultyStarter:
+		return "Начальный"
 	case mathmodels.DifficultyEasy:
-		return "Легко"
+		return "Легкий"
 	case mathmodels.DifficultyMedium:
-		return "Средне"
+		return "Средний"
 	case mathmodels.DifficultyHard:
-		return "Сложно"
+		return "Сложный"
+	case mathmodels.DifficultyExpert:
+		return "Экспертный"
 	default:
 		return "Неизвестно"
 	}

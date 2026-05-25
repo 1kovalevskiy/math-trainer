@@ -35,6 +35,18 @@ func TestLoadOrCreateCreatesMissingFile(t *testing.T) {
 	if cfg.Training.ToMath() != mathmodels.DefaultTrainingSettings() {
 		t.Fatalf("created default settings mismatch: got %+v", cfg.Training.ToMath())
 	}
+	if got, want := cfg.Training.AddDifficulty, mathmodels.DifficultyStarter; got != want {
+		t.Fatalf("default add difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := cfg.Training.SubtractDifficulty, mathmodels.DifficultyStarter; got != want {
+		t.Fatalf("default subtract difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := cfg.Training.MultiplyDifficulty, mathmodels.DifficultyDisabled; got != want {
+		t.Fatalf("default multiply difficulty mismatch: got %q, want %q", got, want)
+	}
+	if got, want := cfg.Training.DivideDifficulty, mathmodels.DifficultyDisabled; got != want {
+		t.Fatalf("default divide difficulty mismatch: got %q, want %q", got, want)
+	}
 
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("created file missing: %v", err)

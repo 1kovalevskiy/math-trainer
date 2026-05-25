@@ -16,11 +16,15 @@ func (testRules) NormalizeSettings(settings mathmodels.TrainingSettings) mathmod
 func (testRules) GetNextDifficulty(current mathmodels.Difficulty) mathmodels.Difficulty {
 	switch current {
 	case mathmodels.DifficultyDisabled:
+		return mathmodels.DifficultyStarter
+	case mathmodels.DifficultyStarter:
 		return mathmodels.DifficultyEasy
 	case mathmodels.DifficultyEasy:
 		return mathmodels.DifficultyMedium
 	case mathmodels.DifficultyMedium:
 		return mathmodels.DifficultyHard
+	case mathmodels.DifficultyHard:
+		return mathmodels.DifficultyExpert
 	default:
 		return mathmodels.DifficultyDisabled
 	}
@@ -77,8 +81,8 @@ func TestUpdateDoesNotMoveActionRowDownToSettingsRows(t *testing.T) {
 
 func TestUpdateChangesEachOperationDifficulty(t *testing.T) {
 	model := NewModel(mathmodels.TrainingSettings{
-		AddDifficulty:      mathmodels.DifficultyEasy,
-		SubtractDifficulty: mathmodels.DifficultyEasy,
+		AddDifficulty:      mathmodels.DifficultyStarter,
+		SubtractDifficulty: mathmodels.DifficultyStarter,
 		MultiplyDifficulty: mathmodels.DifficultyDisabled,
 		DivideDifficulty:   mathmodels.DifficultyDisabled,
 		ExamplesCount:      10,
@@ -92,16 +96,16 @@ func TestUpdateChangesEachOperationDifficulty(t *testing.T) {
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRight})
 
-	if got, want := model.settings.AddDifficulty, mathmodels.DifficultyMedium; got != want {
+	if got, want := model.settings.AddDifficulty, mathmodels.DifficultyEasy; got != want {
 		t.Fatalf("add difficulty mismatch: got %q, want %q", got, want)
 	}
-	if got, want := model.settings.SubtractDifficulty, mathmodels.DifficultyMedium; got != want {
+	if got, want := model.settings.SubtractDifficulty, mathmodels.DifficultyEasy; got != want {
 		t.Fatalf("subtract difficulty mismatch: got %q, want %q", got, want)
 	}
-	if got, want := model.settings.MultiplyDifficulty, mathmodels.DifficultyEasy; got != want {
+	if got, want := model.settings.MultiplyDifficulty, mathmodels.DifficultyStarter; got != want {
 		t.Fatalf("multiply difficulty mismatch: got %q, want %q", got, want)
 	}
-	if got, want := model.settings.DivideDifficulty, mathmodels.DifficultyEasy; got != want {
+	if got, want := model.settings.DivideDifficulty, mathmodels.DifficultyStarter; got != want {
 		t.Fatalf("divide difficulty mismatch: got %q, want %q", got, want)
 	}
 }

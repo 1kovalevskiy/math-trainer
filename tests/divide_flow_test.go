@@ -15,16 +15,16 @@ func TestIntegrationTrainingFlow_DivisionOnly(t *testing.T) {
 	s.key(t, "enter")
 	s.eventuallyViewContains(t, "Настройки тренировки")
 
-	// Add: easy -> medium -> hard -> disabled
-	s.key(t, "right")
-	s.key(t, "right")
-	s.key(t, "right")
-	// Subtract: easy -> medium -> hard -> disabled
+	// Add: starter -> easy -> medium -> hard -> expert -> disabled
+	for i := 0; i < 5; i++ {
+		s.key(t, "right")
+	}
+	// Subtract: starter -> easy -> medium -> hard -> expert -> disabled
 	s.key(t, "down")
-	s.key(t, "right")
-	s.key(t, "right")
-	s.key(t, "right")
-	// Multiply remains disabled, move to divide and enable easy
+	for i := 0; i < 5; i++ {
+		s.key(t, "right")
+	}
+	// Multiply remains disabled, move to divide and enable starter
 	s.key(t, "down")
 	s.key(t, "down")
 	s.key(t, "right")
@@ -43,7 +43,7 @@ func TestIntegrationTrainingFlow_DivisionOnly(t *testing.T) {
 	s.key(t, "enter")
 	s.eventuallyViewContains(t, "Математическое задание")
 	s.eventuallyViewContains(t, "12 / 3 = ?")
-	s.eventuallyViewContains(t, "Сложность: Легко")
+	s.eventuallyViewContains(t, "Сложность: Начальный")
 
 	s.typeText(t, "4")
 	s.key(t, "enter")

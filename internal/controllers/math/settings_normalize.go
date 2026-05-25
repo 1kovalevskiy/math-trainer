@@ -4,10 +4,10 @@ import mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 
 func (c *Controller) NormalizeSettings(settings mathmodels.TrainingSettings) mathmodels.TrainingSettings {
 	if !isKnownDifficulty(settings.AddDifficulty) {
-		settings.AddDifficulty = mathmodels.DifficultyEasy
+		settings.AddDifficulty = mathmodels.DifficultyStarter
 	}
 	if !isKnownDifficulty(settings.SubtractDifficulty) {
-		settings.SubtractDifficulty = mathmodels.DifficultyEasy
+		settings.SubtractDifficulty = mathmodels.DifficultyStarter
 	}
 	if !isKnownDifficulty(settings.MultiplyDifficulty) {
 		settings.MultiplyDifficulty = mathmodels.DifficultyDisabled
@@ -23,7 +23,7 @@ func (c *Controller) NormalizeSettings(settings mathmodels.TrainingSettings) mat
 	}
 
 	if len(enabledOperatorDifficulties(settings)) == 0 {
-		settings.AddDifficulty = mathmodels.DifficultyEasy
+		settings.AddDifficulty = mathmodels.DifficultyStarter
 	}
 
 	return settings

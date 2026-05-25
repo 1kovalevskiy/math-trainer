@@ -24,29 +24,35 @@ func generateExerciseByOperator(
 	operator mathmodels.Operator,
 	difficulty mathmodels.Difficulty,
 ) mathmodels.Exercise {
-	min, max := numbersRange(difficulty)
-
 	switch operator {
 	case mathmodels.OperatorAdd:
-		left := random.Intn(max-min+1) + min
-		right := random.Intn(max-min+1) + min
+		leftMin, leftMax, rightMin, rightMax := addRanges(difficulty)
+		left := randomInRange(random, leftMin, leftMax)
+		right := randomInRange(random, rightMin, rightMax)
 		return mathmodels.Exercise{Left: left, Right: right, Operator: operator}
 	case mathmodels.OperatorSubtract:
-		left := random.Intn(max-min+1) + min
-		right := random.Intn(max-min+1) + min
-		if right > left {
+		leftMin, leftMax, rightMin, rightMax, allowNegative := subtractRanges(difficulty)
+		left := randomInRange(random, leftMin, leftMax)
+		right := randomInRange(random, rightMin, rightMax)
+		if !allowNegative && right > left {
 			left, right = right, left
 		}
 		return mathmodels.Exercise{Left: left, Right: right, Operator: operator}
 	case mathmodels.OperatorMultiply:
-		left := random.Intn(max-min+1) + min
-		right := random.Intn(max-min+1) + min
+		leftMin, leftMax, rightMin, rightMax := multiplyRanges(difficulty)
+		left := randomInRange(random, leftMin, leftMax)
+		right := randomInRange(random, rightMin, rightMax)
 		return mathmodels.Exercise{Left: left, Right: right, Operator: operator}
 	case mathmodels.OperatorDivide:
-		divisor := random.Intn(max-min+1) + min
-		quotient := random.Intn(max-min+1) + min
+		divisorMin, divisorMax, quotientMin, quotientMax := divideRanges(difficulty)
+		divisor := randomInRange(random, divisorMin, divisorMax)
+		quotient := randomInRange(random, quotientMin, quotientMax)
 		return mathmodels.Exercise{Left: divisor * quotient, Right: divisor, Operator: operator}
 	default:
-		return mathmodels.Exercise{Left: min, Right: min, Operator: mathmodels.OperatorAdd}
+		return mathmodels.Exercise{Left: 1, Right: 1, Operator: mathmodels.OperatorAdd}
 	}
+}
+
+func randomInRange(random *rand.Rand, min int, max int) int {
+	return random.Intn(max-min+1) + min
 }

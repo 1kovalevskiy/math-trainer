@@ -104,10 +104,10 @@ func TestController_NormalizeSettings(t *testing.T) {
 	controller := mathcontroller.New(mathmemory.New())
 
 	normalized := controller.NormalizeSettings(mathmodels.TrainingSettings{AddDifficulty: mathmodels.Difficulty("unknown"), SubtractDifficulty: mathmodels.Difficulty("unknown"), MultiplyDifficulty: mathmodels.Difficulty("unknown"), DivideDifficulty: mathmodels.Difficulty("unknown"), ExamplesCount: -10})
-	if got, want := normalized.AddDifficulty, mathmodels.DifficultyEasy; got != want {
+	if got, want := normalized.AddDifficulty, mathmodels.DifficultyStarter; got != want {
 		t.Fatalf("add difficulty mismatch: got %q, want %q", got, want)
 	}
-	if got, want := normalized.SubtractDifficulty, mathmodels.DifficultyEasy; got != want {
+	if got, want := normalized.SubtractDifficulty, mathmodels.DifficultyStarter; got != want {
 		t.Fatalf("subtract difficulty mismatch: got %q, want %q", got, want)
 	}
 	if got, want := normalized.MultiplyDifficulty, mathmodels.DifficultyDisabled; got != want {
@@ -123,6 +123,46 @@ func TestController_NormalizeSettings(t *testing.T) {
 	}
 	if normalized.AddDifficulty == mathmodels.DifficultyDisabled && normalized.SubtractDifficulty == mathmodels.DifficultyDisabled && normalized.MultiplyDifficulty == mathmodels.DifficultyDisabled && normalized.DivideDifficulty == mathmodels.DifficultyDisabled {
 		t.Fatal("expected at least one enabled operator")
+	}
+}
+
+func TestController_DifficultyNavigationUsesFiveLevels(t *testing.T) {
+	t.Parallel()
+
+	controller := mathcontroller.New(mathmemory.New())
+
+	next := []struct {
+		current mathmodels.Difficulty
+		want    mathmodels.Difficulty
+	}{
+		{mathmodels.DifficultyDisabled, mathmodels.DifficultyStarter},
+		{mathmodels.DifficultyStarter, mathmodels.DifficultyEasy},
+		{mathmodels.DifficultyEasy, mathmodels.DifficultyMedium},
+		{mathmodels.DifficultyMedium, mathmodels.DifficultyHard},
+		{mathmodels.DifficultyHard, mathmodels.DifficultyExpert},
+		{mathmodels.DifficultyExpert, mathmodels.DifficultyDisabled},
+	}
+	for _, tt := range next {
+		if got := controller.GetNextDifficulty(tt.current); got != tt.want {
+			t.Fatalf("GetNextDifficulty(%q) = %q, want %q", tt.current, got, tt.want)
+		}
+	}
+
+	previous := []struct {
+		current mathmodels.Difficulty
+		want    mathmodels.Difficulty
+	}{
+		{mathmodels.DifficultyDisabled, mathmodels.DifficultyExpert},
+		{mathmodels.DifficultyStarter, mathmodels.DifficultyDisabled},
+		{mathmodels.DifficultyEasy, mathmodels.DifficultyStarter},
+		{mathmodels.DifficultyMedium, mathmodels.DifficultyEasy},
+		{mathmodels.DifficultyHard, mathmodels.DifficultyMedium},
+		{mathmodels.DifficultyExpert, mathmodels.DifficultyHard},
+	}
+	for _, tt := range previous {
+		if got := controller.GetPreviousDifficulty(tt.current); got != tt.want {
+			t.Fatalf("GetPreviousDifficulty(%q) = %q, want %q", tt.current, got, tt.want)
+		}
 	}
 }
 

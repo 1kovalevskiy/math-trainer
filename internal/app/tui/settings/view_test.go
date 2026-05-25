@@ -59,6 +59,44 @@ func TestViewDefaultNormalizedShape(t *testing.T) {
 	}
 }
 
+func TestSettingsLayoutWidthUsesWidestDifficultyLabel(t *testing.T) {
+	t.Parallel()
+
+	difficulties := []mathmodels.Difficulty{
+		mathmodels.DifficultyDisabled,
+		mathmodels.DifficultyStarter,
+		mathmodels.DifficultyEasy,
+		mathmodels.DifficultyMedium,
+		mathmodels.DifficultyHard,
+		mathmodels.DifficultyExpert,
+	}
+
+	var wantRowWidth int
+	var wantValueWidth int
+	for _, difficulty := range difficulties {
+		model := NewModel(mathmodels.TrainingSettings{
+			AddDifficulty:      difficulty,
+			SubtractDifficulty: difficulty,
+			MultiplyDifficulty: difficulty,
+			DivideDifficulty:   difficulty,
+			ExamplesCount:      mathmodels.DefaultExamplesCount,
+		}, testRules{})
+		layout := model.makeSettingsLayout()
+
+		if wantRowWidth == 0 {
+			wantRowWidth = layout.row.RowWidth
+			wantValueWidth = layout.row.ValueWidth
+			continue
+		}
+		if got := layout.row.RowWidth; got != wantRowWidth {
+			t.Fatalf("row width changed for %q: got %d, want %d", difficulty, got, wantRowWidth)
+		}
+		if got := layout.row.ValueWidth; got != wantValueWidth {
+			t.Fatalf("value width changed for %q: got %d, want %d", difficulty, got, wantValueWidth)
+		}
+	}
+}
+
 func actionLineWidth(t *testing.T, lines []string) int {
 	t.Helper()
 

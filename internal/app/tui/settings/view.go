@@ -114,18 +114,18 @@ func settingsLabelWidth() int {
 func (m Model) settingsValueWidth() int {
 	valueWidth := lipgloss.Width(ui.RenderSegments(m.countValue(false)...))
 	valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.countValue(true)...)))
-	diffRows := []struct {
-		difficulty mathmodels.Difficulty
-	}{
-		{difficulty: m.settings.AddDifficulty},
-		{difficulty: m.settings.SubtractDifficulty},
-		{difficulty: m.settings.MultiplyDifficulty},
-		{difficulty: m.settings.DivideDifficulty},
+	difficulties := []mathmodels.Difficulty{
+		mathmodels.DifficultyDisabled,
+		mathmodels.DifficultyStarter,
+		mathmodels.DifficultyEasy,
+		mathmodels.DifficultyMedium,
+		mathmodels.DifficultyHard,
+		mathmodels.DifficultyExpert,
 	}
 
-	for _, row := range diffRows {
-		valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.operationValue(false, row.difficulty, "", "")...)))
-		valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.operationValue(true, row.difficulty, "", "")...)))
+	for _, difficulty := range difficulties {
+		valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.operationValue(false, difficulty, "", "")...)))
+		valueWidth = max(valueWidth, lipgloss.Width(ui.RenderSegments(m.operationValue(true, difficulty, "", "")...)))
 	}
 
 	return valueWidth

@@ -28,11 +28,11 @@ func TestIntegrationSettingsFlow_ApplyAffectsNextTraining(t *testing.T) {
 	s.key(t, "enter")
 	s.eventuallyViewContains(t, "Математическое задание")
 	s.eventuallyViewContains(t, "Пример 1 из 11")
-	s.eventuallyViewContains(t, "Сложность: Средне")
+	s.eventuallyViewContains(t, "Сложность: Легкий")
 	s.eventuallyViewContains(t, "11 + 4 = ?")
 	s.requireGeneratedSettings(t, mathmodels.TrainingSettings{
-		AddDifficulty:      mathmodels.DifficultyMedium,
-		SubtractDifficulty: mathmodels.DifficultyEasy,
+		AddDifficulty:      mathmodels.DifficultyEasy,
+		SubtractDifficulty: mathmodels.DifficultyStarter,
 		MultiplyDifficulty: mathmodels.DifficultyDisabled,
 		DivideDifficulty:   mathmodels.DifficultyDisabled,
 		ExamplesCount:      11,
@@ -48,15 +48,15 @@ func TestIntegrationSettingsFlow_CannotDisableAllOperators(t *testing.T) {
 	s.key(t, "enter")
 	s.eventuallyViewContains(t, "Настройки тренировки")
 
-	// Add: easy -> medium -> hard -> disabled
-	s.key(t, "right")
-	s.key(t, "right")
-	s.key(t, "right")
-	// Subtract: easy -> medium -> hard -> disabled
+	// Add: starter -> easy -> medium -> hard -> expert -> disabled
+	for i := 0; i < 5; i++ {
+		s.key(t, "right")
+	}
+	// Subtract: starter -> easy -> medium -> hard -> expert -> disabled
 	s.key(t, "down")
-	s.key(t, "right")
-	s.key(t, "right")
-	s.key(t, "right")
+	for i := 0; i < 5; i++ {
+		s.key(t, "right")
+	}
 	// Multiply stays disabled
 	s.key(t, "down")
 	// Divide stays disabled
