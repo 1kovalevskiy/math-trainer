@@ -2,7 +2,6 @@ package start
 
 import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -15,7 +14,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		for i := range m.options {
 			if shared.InZone(optionZoneID(i), typedMsg) {
-				m.cursor = i
+				m = m.withCursor(i)
 				return m, m.selectCurrent()
 			}
 		}
@@ -24,9 +23,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch typedMsg.String() {
 		case "up", "k":
-			m.cursor = ui.MoveIndex(m.cursor, -1, 0, len(m.options)-1)
+			m = m.moveCursor(-1)
 		case "down", "j":
-			m.cursor = ui.MoveIndex(m.cursor, 1, 0, len(m.options)-1)
+			m = m.moveCursor(1)
 		case "enter":
 			return m, m.selectCurrent()
 		}

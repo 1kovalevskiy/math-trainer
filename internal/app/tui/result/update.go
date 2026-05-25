@@ -26,7 +26,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		for i := range m.options {
 			if shared.InZone(optionZoneID(i), typedMsg) {
-				m.cursor = i
+				m = m.withCursor(i)
 				return m, m.selectCurrent()
 			}
 		}
@@ -35,9 +35,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.refreshScrollBounds()
 		switch typedMsg.String() {
 		case "left", "h":
-			m.cursor = ui.MoveIndex(m.cursor, -1, 0, len(m.options)-1)
+			m = m.moveCursor(-1)
 		case "right", "l":
-			m.cursor = ui.MoveIndex(m.cursor, 1, 0, len(m.options)-1)
+			m = m.moveCursor(1)
 		case "up", "k":
 			m.scrollOffset--
 			m.clampScroll()

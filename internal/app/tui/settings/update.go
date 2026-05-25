@@ -2,7 +2,6 @@ package settings
 
 import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -19,10 +18,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch typedMsg.String() {
 		case "up", "k":
 			m.errText = ""
-			m = m.moveCursorUp()
+			m.focus = m.focus.moveUp()
 		case "down", "j":
 			m.errText = ""
-			m = m.moveCursorDown()
+			m.focus = m.focus.moveDown()
 		case "left", "h":
 			m.errText = ""
 			m = m.decrementCurrent()
@@ -30,10 +29,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.errText = ""
 			m = m.incrementCurrent()
 		case "enter":
-			switch m.cursor {
-			case rowApply:
+			switch {
+			case m.focus.isAction(actionApply):
 				return m, emit(ApplySettingsMsg{Settings: m.settings})
-			case rowBack:
+			case m.focus.isAction(actionBack):
 				return m, emit(BackMsg{})
 			}
 		case "esc":
@@ -44,86 +43,63 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) moveCursorUp() Model {
-	if m.cursor == rowApply || m.cursor == rowBack {
-		m.cursor = rowExamplesCount
-		return m
-	}
-	m.cursor = ui.MoveIndex(m.cursor, -1, rowAddDifficulty, rowExamplesCount)
-
-	return m
-}
-
-func (m Model) moveCursorDown() Model {
-	if m.cursor == rowExamplesCount {
-		m.cursor = rowApply
-		return m
-	}
-	if m.cursor == rowApply || m.cursor == rowBack {
-		return m
-	}
-	m.cursor = ui.MoveIndex(m.cursor, 1, rowAddDifficulty, rowExamplesCount)
-
-	return m
-}
-
 func (m Model) handleMouseClick(msg tea.MouseMsg) (Model, tea.Cmd) {
 	switch {
 	case shared.InZone(zoneAddPrev, msg):
-		m.cursor = rowAddDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingAddDifficulty}
 		m.settings.AddDifficulty = m.prevDifficulty(m.settings.AddDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneAddNext, msg):
-		m.cursor = rowAddDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingAddDifficulty}
 		m.settings.AddDifficulty = m.nextDifficulty(m.settings.AddDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneSubtractPrev, msg):
-		m.cursor = rowSubtractDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingSubtractDifficulty}
 		m.settings.SubtractDifficulty = m.prevDifficulty(m.settings.SubtractDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneSubtractNext, msg):
-		m.cursor = rowSubtractDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingSubtractDifficulty}
 		m.settings.SubtractDifficulty = m.nextDifficulty(m.settings.SubtractDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneMultiplyPrev, msg):
-		m.cursor = rowMultiplyDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingMultiplyDifficulty}
 		m.settings.MultiplyDifficulty = m.prevDifficulty(m.settings.MultiplyDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneMultiplyNext, msg):
-		m.cursor = rowMultiplyDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingMultiplyDifficulty}
 		m.settings.MultiplyDifficulty = m.nextDifficulty(m.settings.MultiplyDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneDividePrev, msg):
-		m.cursor = rowDivideDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingDivideDifficulty}
 		m.settings.DivideDifficulty = m.prevDifficulty(m.settings.DivideDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneDivideNext, msg):
-		m.cursor = rowDivideDifficulty
+		m.focus = settingsFocus{section: focusSettings, setting: settingDivideDifficulty}
 		m.settings.DivideDifficulty = m.nextDifficulty(m.settings.DivideDifficulty)
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneCountDec, msg):
-		m.cursor = rowExamplesCount
+		m.focus = settingsFocus{section: focusSettings, setting: settingExamplesCount}
 		m.settings.ExamplesCount--
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneCountInc, msg):
-		m.cursor = rowExamplesCount
+		m.focus = settingsFocus{section: focusSettings, setting: settingExamplesCount}
 		m.settings.ExamplesCount++
 		m.settings = m.normalizeSettings()
 		return m, nil
 	case shared.InZone(zoneApply, msg):
-		m.cursor = rowApply
+		m.focus = settingsFocus{section: focusActions, action: actionApply}
 		return m, emit(ApplySettingsMsg{Settings: m.settings})
 	case shared.InZone(zoneBack, msg):
-		m.cursor = rowBack
+		m.focus = settingsFocus{section: focusActions, action: actionBack}
 		return m, emit(BackMsg{})
 	default:
 		return m, nil
@@ -131,48 +107,48 @@ func (m Model) handleMouseClick(msg tea.MouseMsg) (Model, tea.Cmd) {
 }
 
 func (m Model) incrementCurrent() Model {
-	switch m.cursor {
-	case rowAddDifficulty:
+	switch {
+	case m.focus.isSetting(settingAddDifficulty):
 		m.settings.AddDifficulty = m.nextDifficulty(m.settings.AddDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowSubtractDifficulty:
+	case m.focus.isSetting(settingSubtractDifficulty):
 		m.settings.SubtractDifficulty = m.nextDifficulty(m.settings.SubtractDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowMultiplyDifficulty:
+	case m.focus.isSetting(settingMultiplyDifficulty):
 		m.settings.MultiplyDifficulty = m.nextDifficulty(m.settings.MultiplyDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowDivideDifficulty:
+	case m.focus.isSetting(settingDivideDifficulty):
 		m.settings.DivideDifficulty = m.nextDifficulty(m.settings.DivideDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowExamplesCount:
+	case m.focus.isSetting(settingExamplesCount):
 		m.settings.ExamplesCount++
 		m.settings = m.normalizeSettings()
-	case rowApply:
-		m.cursor = rowBack
+	case m.focus.section == focusActions:
+		m.focus = m.focus.moveRight()
 	}
 
 	return m
 }
 
 func (m Model) decrementCurrent() Model {
-	switch m.cursor {
-	case rowAddDifficulty:
+	switch {
+	case m.focus.isSetting(settingAddDifficulty):
 		m.settings.AddDifficulty = m.prevDifficulty(m.settings.AddDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowSubtractDifficulty:
+	case m.focus.isSetting(settingSubtractDifficulty):
 		m.settings.SubtractDifficulty = m.prevDifficulty(m.settings.SubtractDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowMultiplyDifficulty:
+	case m.focus.isSetting(settingMultiplyDifficulty):
 		m.settings.MultiplyDifficulty = m.prevDifficulty(m.settings.MultiplyDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowDivideDifficulty:
+	case m.focus.isSetting(settingDivideDifficulty):
 		m.settings.DivideDifficulty = m.prevDifficulty(m.settings.DivideDifficulty)
 		m.settings = m.normalizeSettings()
-	case rowExamplesCount:
+	case m.focus.isSetting(settingExamplesCount):
 		m.settings.ExamplesCount--
 		m.settings = m.normalizeSettings()
-	case rowBack:
-		m.cursor = rowApply
+	case m.focus.section == focusActions:
+		m.focus = m.focus.moveLeft()
 	}
 
 	return m

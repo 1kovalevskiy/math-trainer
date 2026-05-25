@@ -1,94 +1,28 @@
 package tui
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/result"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/settings"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/start"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/task"
-	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch typedMsg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = typedMsg.Width
-		m.height = typedMsg.Height
-		if m.screen == ScreenResult {
-			m.resultModel = m.resultModelWithCurrentViewport(m.resultModel)
-		}
-	case tea.KeyMsg:
-		if typedMsg.String() == "ctrl+c" {
-			return m, tea.Quit
-		}
-	case start.OpenSettingsMsg:
-		m.settingsModel = settings.NewModel(m.settings, m.mathController)
-		m.screen = ScreenSettings
-		return m, nil
-	case start.OpenTaskMsg:
-		return m.startTraining()
-	case start.QuitMsg:
-		return m, tea.Quit
-	case settings.ApplySettingsMsg:
-		normalized := m.mathController.NormalizeSettings(typedMsg.Settings)
-		return m, persistSettingsCmd(m.ctx, m.settingsStore, normalized)
-	case settings.BackMsg:
-		m.screen = ScreenStart
-		return m, nil
-	case task.SubmitMsg:
-		return m, submitAnswerCmd(m.ctx, m.mathController, typedMsg.Answer)
-	case task.SkipMsg:
-		return m, skipCurrentCmd(m.ctx, m.mathController)
-	case task.BackMsg:
-		m.screen = ScreenStart
-		return m, cancelTrainingCmd(m.ctx, m.mathController)
-	case result.RetryTaskMsg:
-		return m.startTraining()
-	case result.OpenSettingsMsg:
-		m.settingsModel = settings.NewModel(m.settings, m.mathController)
-		m.screen = ScreenSettings
-		return m, nil
-	case result.BackToStartMsg:
-		m.screen = ScreenStart
-		return m, nil
-	case trainingSnapshotMsg:
-		if typedMsg.err != nil {
-			m.taskModel = m.taskModel.WithError(errorText(typedMsg.err))
-			return m, nil
-		}
-		return m.applySnapshot(typedMsg.snapshot), nil
-	case persistSettingsMsg:
-		if typedMsg.err != nil {
-			m.settingsModel = m.settingsModel.WithError(errorText(typedMsg.err))
-			m.screen = ScreenSettings
-			return m, nil
-		}
-		m.settings = typedMsg.settings
-		m.settingsModel = settings.NewModel(m.settings, m.mathController)
-		m.screen = ScreenStart
-		return m, nil
-	case cancelTrainingMsg:
-		return m, nil
+	if updated, cmd, handled := m.handleSystemMsg(msg); handled {
+		return updated, cmd
+	}
+	if updated, cmd, handled := m.handleScreenMsg(msg); handled {
+		return updated, cmd
+	}
+	if updated, cmd, handled := m.handleCommandResultMsg(msg); handled {
+		return updated, cmd
 	}
 
-	var cmd tea.Cmd
-	switch m.screen {
-	case ScreenStart:
-		m.startModel, cmd = m.startModel.Update(msg)
-	case ScreenSettings:
-		m.settingsModel, cmd = m.settingsModel.Update(msg)
-	case ScreenTask:
-		m.taskModel, cmd = m.taskModel.Update(msg)
-	case ScreenResult:
-		m.resultModel = m.resultModelWithCurrentViewport(m.resultModel)
-		m.resultModel, cmd = m.resultModel.Update(msg)
+	if updated, cmd, handled := m.updateCurrentScreen(msg); handled {
+		return updated, cmd
 	}
 
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) startTraining() (Model, tea.Cmd) {
@@ -114,36 +48,11 @@ func (m Model) applySnapshot(snapshot mathmodels.TrainingSnapshot) Model {
 }
 
 func (m Model) resultModelWithCurrentViewport(resultModel result.Model) result.Model {
-	if m.width <= 0 || m.height <= 0 {
+	frame := newPanelFrame(m.width, m.height)
+	if !frame.hasWindowSize {
 		return resultModel
 	}
 
-	panelWidth := m.width - ui.Panel.GetHorizontalBorderSize()
-	panelHeight := m.height - ui.Panel.GetVerticalBorderSize()
-	if panelWidth < 1 {
-		panelWidth = 1
-	}
-	if panelHeight < 1 {
-		panelHeight = 1
-	}
-
-	contentWidth := panelWidth - ui.Panel.GetHorizontalPadding()
-	contentPanelHeight := panelHeight - ui.Panel.GetVerticalPadding()
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
-	if contentPanelHeight < 1 {
-		contentPanelHeight = 1
-	}
-
-	contentHeight := contentHeightForScreen(screenHints(ScreenResult), contentPanelHeight)
-	return resultModel.WithContentSize(contentWidth, contentHeight)
-}
-
-func errorText(err error) string {
-	if errors.Is(err, mathmodels.ErrInvalidAnswer) {
-		return "Ответ должен быть числом"
-	}
-
-	return fmt.Sprintf("%v", err)
+	contentHeight := contentHeightForScreen(screenHints(ScreenResult), frame.contentPanelHeight)
+	return resultModel.WithContentSize(frame.contentWidth, contentHeight)
 }

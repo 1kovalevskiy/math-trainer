@@ -74,8 +74,8 @@ func TestUpdateDoesNotMoveActionRowDownToSettingsRows(t *testing.T) {
 	}
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
 
-	if model.cursor != rowApply {
-		t.Fatalf("cursor mismatch: got %d, want %d", model.cursor, rowApply)
+	if !model.focus.isAction(actionApply) {
+		t.Fatalf("focus mismatch: got %+v, want apply action", model.focus)
 	}
 }
 
