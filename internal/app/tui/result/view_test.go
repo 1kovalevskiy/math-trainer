@@ -1,11 +1,13 @@
 package result
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
+	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -115,6 +117,89 @@ func TestViewWithSizeShowsEmptyFallback(t *testing.T) {
 	view := model.ViewWithSize(60, 10)
 	if !strings.Contains(view, "Нет ответов") {
 		t.Fatalf("expected empty fallback, got %q", view)
+	}
+}
+
+func TestRenderEntryAppliesStatusBackgroundToWholeResultText(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		entry mathmodels.ExampleResult
+		style lipgloss.Style
+		text  string
+	}{
+		{
+			name: "correct",
+			entry: mathmodels.ExampleResult{
+				Order:         1,
+				Exercise:      mathmodels.Exercise{Left: 2, Right: 3, Operator: mathmodels.OperatorAdd},
+				CorrectAnswer: 5,
+				UserAnswer:    intPtr(5),
+				Status:        mathmodels.ResultStatusCorrect,
+			},
+			style: correctStyle,
+			text:  "1) 2 + 3 = 5",
+		},
+		{
+			name: "incorrect",
+			entry: mathmodels.ExampleResult{
+				Order:         2,
+				Exercise:      mathmodels.Exercise{Left: 7, Right: 4, Operator: mathmodels.OperatorSubtract},
+				CorrectAnswer: 3,
+				UserAnswer:    intPtr(4),
+				Status:        mathmodels.ResultStatusIncorrect,
+			},
+			style: incorrectStyle,
+			text:  "2) 7 - 4 = 4 (ответ: 3)",
+		},
+		{
+			name: "skipped",
+			entry: mathmodels.ExampleResult{
+				Order:         3,
+				Exercise:      mathmodels.Exercise{Left: 6, Right: 2, Operator: mathmodels.OperatorMultiply},
+				CorrectAnswer: 12,
+				Status:        mathmodels.ResultStatusSkipped,
+			},
+			style: skippedStyle,
+			text:  "3) 6 * 2 = ____ (ответ: 12)",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got, want := renderEntry(tc.entry), tc.style.Render(tc.text); got != want {
+				t.Fatalf("rendered entry mismatch:\ngot:  %q\nwant: %q", got, want)
+			}
+		})
+	}
+}
+
+func TestResultStatusStylesUseContrastingBackgroundsWithoutIncorrectStrikethrough(t *testing.T) {
+	t.Parallel()
+
+	if got, want := correctStyle.GetBackground(), lipgloss.Color("151"); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("correct background mismatch: got %v, want %v", got, want)
+	}
+	if got, want := correctStyle.GetForeground(), lipgloss.Color("235"); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("correct foreground mismatch: got %v, want %v", got, want)
+	}
+	if got, want := incorrectStyle.GetBackground(), lipgloss.Color("217"); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("incorrect background mismatch: got %v, want %v", got, want)
+	}
+	if got, want := incorrectStyle.GetForeground(), lipgloss.Color("235"); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("incorrect foreground mismatch: got %v, want %v", got, want)
+	}
+	if incorrectStyle.GetStrikethrough() {
+		t.Fatal("incorrect result style must not be strikethrough")
+	}
+	if got, want := skippedStyle.GetBackground(), lipgloss.Color("240"); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("skipped background mismatch: got %v, want %v", got, want)
+	}
+	if got, want := skippedStyle.GetForeground(), lipgloss.Color("230"); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("skipped foreground mismatch: got %v, want %v", got, want)
 	}
 }
 
@@ -235,6 +320,10 @@ func testSummaryWithWideEntries(count int) *mathmodels.TrainingSummary {
 		Correct:  count,
 		Total:    count,
 	}
+}
+
+func intPtr(value int) *int {
+	return &value
 }
 
 func findLineWithAll(view string, parts []string) string {
