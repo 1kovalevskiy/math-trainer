@@ -11,8 +11,8 @@ func (m Model) View() string {
 		return zone.Scan(ui.Panel.Render(centerBlock(content, ui.MinPanelContentWidth)))
 	}
 
-	panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
-	panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
+	panelWidth := m.width - ui.Panel.GetHorizontalBorderSize()
+	panelHeight := m.height - ui.Panel.GetVerticalBorderSize()
 	if panelWidth < 1 {
 		panelWidth = 1
 	}
@@ -20,13 +20,22 @@ func (m Model) View() string {
 		panelHeight = 1
 	}
 
+	contentWidth := panelWidth - ui.Panel.GetHorizontalPadding()
+	contentPanelHeight := panelHeight - ui.Panel.GetVerticalPadding()
+	if contentWidth < 1 {
+		contentWidth = 1
+	}
+	if contentPanelHeight < 1 {
+		contentPanelHeight = 1
+	}
+
 	chrome := screenChrome(m.screen)
-	contentHeight := contentHeightForScreen(chrome.hints, panelHeight)
-	content := m.viewCurrentScreen(panelWidth, contentHeight)
+	contentHeight := contentHeightForScreen(chrome.hints, contentPanelHeight)
+	content := m.viewCurrentScreen(contentWidth, contentHeight)
 	if chrome.fitContent {
-		content = renderScreenContent(content, chrome.hints, panelWidth, panelHeight)
+		content = renderScreenContent(content, chrome.hints, contentWidth, contentPanelHeight)
 	} else {
-		content = renderScreenContentNoFit(content, chrome.hints, panelWidth, panelHeight)
+		content = renderScreenContentNoFit(content, chrome.hints, contentWidth, contentPanelHeight)
 	}
 
 	return zone.Scan(ui.Panel.Width(panelWidth).Height(panelHeight).Render(content))

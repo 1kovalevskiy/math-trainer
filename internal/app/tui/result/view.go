@@ -18,10 +18,11 @@ const (
 )
 
 var (
-	expressionStyle = lipgloss.NewStyle().Bold(true)
-	correctStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	incorrectStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Strikethrough(true).Bold(true)
-	skippedStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Bold(true)
+	resultSurfaceStyle = lipgloss.NewStyle().Background(ui.PanelBackgroundColor)
+	expressionStyle    = lipgloss.NewStyle().Bold(true)
+	correctStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	incorrectStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Strikethrough(true).Bold(true)
+	skippedStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Bold(true)
 )
 
 func (m Model) View() string {
@@ -60,7 +61,7 @@ func (m Model) ViewWithSize(width int, height int) string {
 	}
 
 	for i := range lines {
-		lines[i] = ui.PadCenter(lines[i], width)
+		lines[i] = resultPadCenter(lines[i], width)
 	}
 
 	return strings.Join(lines, "\n")
@@ -158,15 +159,15 @@ func renderGridRow(entries []string, row int, columns int, entryWidth int, conte
 
 	cells := make([]string, 0, count)
 	for col := 0; col < count; col++ {
-		cells = append(cells, ui.PadRight(entries[start+col], entryWidth))
+		cells = append(cells, resultPadRight(entries[start+col], entryWidth))
 	}
 
-	line := strings.Join(cells, strings.Repeat(" ", resultColumnGap))
+	line := strings.Join(cells, resultPad(resultColumnGap))
 	if count < columns {
-		return ui.PadCenter(line, contentWidth)
+		return resultPadCenter(line, contentWidth)
 	}
 
-	return ui.PadRight(line, contentWidth)
+	return resultPadRight(line, contentWidth)
 }
 
 func (m Model) renderActionButtons() string {
@@ -274,14 +275,38 @@ func addVerticalScrollbar(lines []string, viewportWidth int, viewportHeight int,
 		if i >= thumbTop && i < thumbTop+thumbHeight {
 			glyph = "█"
 		}
-		centered := ui.PadCenter(line, viewportWidth)
-		if strings.HasSuffix(centered, " ") {
-			centered = centered[:len(centered)-1]
-		}
-		res = append(res, centered+glyph)
+		res = append(res, resultPadCenterWithRightGlyph(line, viewportWidth, glyph))
 	}
 
 	return res
+}
+
+func resultPad(width int) string {
+	return ui.StyledPad(resultSurfaceStyle, width)
+}
+
+func resultPadRight(content string, width int) string {
+	return ui.StyledPadRight(resultSurfaceStyle, content, width)
+}
+
+func resultPadCenter(content string, width int) string {
+	return ui.StyledPadCenter(resultSurfaceStyle, content, width)
+}
+
+func resultPadCenterWithRightGlyph(content string, width int, glyph string) string {
+	contentWidth := ui.Width(content)
+	padding := width - contentWidth
+	if padding <= 0 {
+		return content
+	}
+
+	left := padding / 2
+	right := padding - left - ui.Width(glyph)
+	if right < 0 {
+		right = 0
+	}
+
+	return resultPad(left) + content + resultPad(right) + glyph
 }
 
 func max(a int, b int) int {

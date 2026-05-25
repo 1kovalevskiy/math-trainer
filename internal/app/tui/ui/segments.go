@@ -34,3 +34,14 @@ func StyledPad(style lipgloss.Style, width int) string {
 func StyledPadRight(style lipgloss.Style, content string, width int) string {
 	return content + StyledPad(style, width-Width(content))
 }
+
+func StyledPadCenter(style lipgloss.Style, content string, width int) string {
+	padding := width - Width(content)
+	if padding <= 0 {
+		return content
+	}
+
+	left := padding / 2
+	right := padding - left
+	return StyledPad(style, left) + content + StyledPad(style, right)
+}

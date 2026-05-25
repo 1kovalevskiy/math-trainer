@@ -118,8 +118,8 @@ func (m Model) resultModelWithCurrentViewport(resultModel result.Model) result.M
 		return resultModel
 	}
 
-	panelWidth := m.width - ui.Panel.GetHorizontalFrameSize()
-	panelHeight := m.height - ui.Panel.GetVerticalFrameSize()
+	panelWidth := m.width - ui.Panel.GetHorizontalBorderSize()
+	panelHeight := m.height - ui.Panel.GetVerticalBorderSize()
 	if panelWidth < 1 {
 		panelWidth = 1
 	}
@@ -127,8 +127,17 @@ func (m Model) resultModelWithCurrentViewport(resultModel result.Model) result.M
 		panelHeight = 1
 	}
 
-	contentHeight := contentHeightForScreen(screenHints(ScreenResult), panelHeight)
-	return resultModel.WithContentSize(panelWidth, contentHeight)
+	contentWidth := panelWidth - ui.Panel.GetHorizontalPadding()
+	contentPanelHeight := panelHeight - ui.Panel.GetVerticalPadding()
+	if contentWidth < 1 {
+		contentWidth = 1
+	}
+	if contentPanelHeight < 1 {
+		contentPanelHeight = 1
+	}
+
+	contentHeight := contentHeightForScreen(screenHints(ScreenResult), contentPanelHeight)
+	return resultModel.WithContentSize(contentWidth, contentHeight)
 }
 
 func errorText(err error) string {

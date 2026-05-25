@@ -17,6 +17,8 @@ const (
 	hintBottomPadding = 1
 )
 
+var panelSurface = lipgloss.NewStyle().Background(ui.PanelBackgroundColor)
+
 type screenChromeConfig struct {
 	hints      []string
 	fitContent bool
@@ -44,13 +46,7 @@ func renderScreenContent(content string, hints []string, width int, height int) 
 		bottomPadding = 0
 	}
 
-	body := lipgloss.Place(
-		width,
-		contentHeight,
-		lipgloss.Center,
-		lipgloss.Center,
-		fitBlock(centerBlock(content, width), width, contentHeight),
-	)
+	body := renderCenteredBlock(fitBlock(centerBlock(content, width), width, contentHeight), width, contentHeight)
 	if hintHeight == 0 {
 		return body
 	}
@@ -58,7 +54,7 @@ func renderScreenContent(content string, hints []string, width int, height int) 
 	return strings.Join([]string{
 		body,
 		hintArea,
-		lipgloss.NewStyle().Width(width).Render(""),
+		panelPad(width),
 	}, "\n")
 }
 
@@ -84,13 +80,7 @@ func renderScreenContentNoFit(content string, hints []string, width int, height 
 		bottomPadding = 0
 	}
 
-	body := lipgloss.Place(
-		width,
-		contentHeight,
-		lipgloss.Left,
-		lipgloss.Top,
-		content,
-	)
+	body := renderFixedBlock(content, width, contentHeight)
 	if hintHeight == 0 {
 		return body
 	}
@@ -98,7 +88,7 @@ func renderScreenContentNoFit(content string, hints []string, width int, height 
 	return strings.Join([]string{
 		body,
 		hintArea,
-		lipgloss.NewStyle().Width(width).Render(""),
+		panelPad(width),
 	}, "\n")
 }
 
@@ -117,13 +107,7 @@ func contentHeightForScreen(hints []string, panelHeight int) int {
 }
 
 func renderHintArea(hints []string, width int) string {
-	return lipgloss.Place(
-		width,
-		hintAreaHeight,
-		lipgloss.Center,
-		lipgloss.Bottom,
-		renderHintBlock(hints, width),
-	)
+	return renderBottomBlock(renderHintBlock(hints, width), width, hintAreaHeight)
 }
 
 func renderHintBlock(hints []string, width int) string {
@@ -136,13 +120,78 @@ func renderHintBlock(hints []string, width int) string {
 		if hint == "" {
 			continue
 		}
-		lines = append(lines, ui.Hint.Width(width).Align(lipgloss.Center).Render(hint))
+		lines = append(lines, panelPadCenter(ui.Hint.Render(hint), width))
 	}
 	if len(lines) == 0 {
 		return ""
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func renderFixedBlock(content string, width int, height int) string {
+	if height < 1 {
+		height = 1
+	}
+
+	lines := strings.Split(content, "\n")
+	if len(lines) > height {
+		lines = lines[:height]
+	}
+	for len(lines) < height {
+		lines = append(lines, "")
+	}
+	for i, line := range lines {
+		lines[i] = panelPadRight(line, width)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func renderCenteredBlock(content string, width int, height int) string {
+	if height < 1 {
+		height = 1
+	}
+
+	lines := strings.Split(content, "\n")
+	if len(lines) > height {
+		lines = lines[:height]
+	}
+	centered := make([]string, 0, height)
+	top := (height - len(lines)) / 2
+	for i := 0; i < top; i++ {
+		centered = append(centered, panelPad(width))
+	}
+	centered = append(centered, lines...)
+	for len(centered) < height {
+		centered = append(centered, panelPad(width))
+	}
+	for i, line := range centered {
+		centered[i] = panelPadCenter(line, width)
+	}
+
+	return strings.Join(centered, "\n")
+}
+
+func renderBottomBlock(content string, width int, height int) string {
+	if height < 1 {
+		height = 1
+	}
+
+	lines := strings.Split(content, "\n")
+	if len(lines) > height {
+		lines = lines[len(lines)-height:]
+	}
+	block := make([]string, 0, height)
+	for len(block)+len(lines) < height {
+		block = append(block, panelPad(width))
+	}
+	block = append(block, lines...)
+	for i, line := range block {
+		block[i] = panelPadCenter(line, width)
+	}
+
+	return strings.Join(block, "\n")
 }
 
 func fitBlock(content string, width int, height int) string {
@@ -155,7 +204,7 @@ func fitBlock(content string, width int, height int) string {
 		return content
 	}
 	if height == 1 {
-		return lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render("…")
+		return panelPadCenter("…", width)
 	}
 
 	visible := height - 1
@@ -164,9 +213,7 @@ func fitBlock(content string, width int, height int) string {
 
 	fitted := make([]string, 0, height)
 	fitted = append(fitted, lines[:top]...)
-	fitted = append(fitted, lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(
-		fmt.Sprintf("… еще %d строк …", len(lines)-visible),
-	))
+	fitted = append(fitted, panelPadCenter(fmt.Sprintf("… еще %d строк …", len(lines)-visible), width))
 	fitted = append(fitted, lines[len(lines)-bottom:]...)
 
 	return strings.Join(fitted, "\n")
@@ -175,10 +222,22 @@ func fitBlock(content string, width int, height int) string {
 func centerBlock(content string, width int) string {
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
-		lines[i] = lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(line)
+		lines[i] = panelPadCenter(line, width)
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func panelPad(width int) string {
+	return ui.StyledPad(panelSurface, width)
+}
+
+func panelPadRight(content string, width int) string {
+	return ui.StyledPadRight(panelSurface, content, width)
+}
+
+func panelPadCenter(content string, width int) string {
+	return ui.StyledPadCenter(panelSurface, content, width)
 }
 
 func screenHints(screen Screen) []string {

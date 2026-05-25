@@ -43,6 +43,37 @@ func TestResultScrollUsesVisibleResultsViewport(t *testing.T) {
 	}
 }
 
+func TestResultScrollbarStaysAtRightEdgeInRootView(t *testing.T) {
+	model := NewModel(context.Background(), persistTestController{}, nil)
+	model.width = 126
+	model.height = 36
+	model.screen = ScreenResult
+	model.resultModel = result.NewModel().WithSummary(tuiTestSummary(40))
+	model.resultModel = model.resultModelWithCurrentViewport(model.resultModel)
+
+	view := model.View()
+	found := false
+	for _, line := range strings.Split(view, "\n") {
+		if !strings.Contains(line, "█") && !strings.Contains(line, "│") {
+			continue
+		}
+		if strings.Contains(line, "Результаты") || strings.Contains(line, "Сводка") || strings.Contains(line, "Сложности") {
+			continue
+		}
+		if strings.Count(line, "│") < 2 && !strings.Contains(line, "█") {
+			continue
+		}
+
+		if strings.HasSuffix(line, "█  │") || strings.HasSuffix(line, "│  │") {
+			found = true
+			continue
+		}
+	}
+	if !found {
+		t.Fatalf("expected root view scrollbar at right edge, got %q", view)
+	}
+}
+
 func tuiTestSummary(count int) *mathmodels.TrainingSummary {
 	results := make([]mathmodels.ExampleResult, 0, count)
 	for i := 1; i <= count; i++ {
