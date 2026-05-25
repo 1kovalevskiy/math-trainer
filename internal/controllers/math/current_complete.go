@@ -40,6 +40,7 @@ func (c *Controller) completeCurrent(
 
 	if len(state.Results) >= state.Settings.ExamplesCount {
 		state.Finished = true
+		state.FinishedAt = c.clock()
 		state.CurrentOrder = 0
 		state.CurrentExercise = mathmodels.Exercise{}
 	} else {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
@@ -117,6 +118,18 @@ func TestViewWithSizeShowsEmptyFallback(t *testing.T) {
 	view := model.ViewWithSize(60, 10)
 	if !strings.Contains(view, "Нет ответов") {
 		t.Fatalf("expected empty fallback, got %q", view)
+	}
+}
+
+func TestViewWithSizeShowsElapsedTrainingTime(t *testing.T) {
+	t.Parallel()
+
+	summary := testSummary(1)
+	summary.Elapsed = time.Minute + 5*time.Second
+	view := NewModel().WithSummary(summary).ViewWithSize(80, 12)
+
+	if !strings.Contains(view, "Время: 1:05") {
+		t.Fatalf("expected elapsed training time, got %q", view)
 	}
 }
 

@@ -3,6 +3,7 @@ package result
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/shared"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
@@ -77,6 +78,7 @@ func (m Model) renderHeaderLines() []string {
 		"",
 		resultLabelStyle.Render("Сложности: ") + resultValueStyle.Render(settingsDifficultySummary(m.summary.Settings)),
 		resultAccentStyle.Render(fmt.Sprintf("Правильных: %d из %d", m.summary.Correct, m.summary.Total)),
+		resultLabelStyle.Render("Время: ") + resultValueStyle.Render(formatElapsed(m.summary.Elapsed)),
 		"",
 	}
 }
@@ -193,6 +195,18 @@ func settingsDifficultySummary(settings mathmodels.TrainingSettings) string {
 		fmt.Sprintf("/ %s", shared.DifficultyLabel(settings.DivideDifficulty)),
 	}
 	return strings.Join(parts, ", ")
+}
+
+func formatElapsed(elapsed time.Duration) string {
+	if elapsed < 0 {
+		elapsed = 0
+	}
+	elapsed = elapsed.Truncate(time.Second)
+
+	totalSeconds := int(elapsed.Seconds())
+	minutes := totalSeconds / 60
+	seconds := totalSeconds % 60
+	return fmt.Sprintf("%d:%02d", minutes, seconds)
 }
 
 func renderEntry(entry mathmodels.ExampleResult) string {

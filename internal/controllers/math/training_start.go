@@ -26,6 +26,7 @@ func (c *Controller) StartTraining(
 		CurrentOrder:    1,
 		CurrentExercise: exercise,
 		Results:         make([]mathmodels.ExampleResult, 0, settings.ExamplesCount),
+		StartedAt:       c.clock(),
 	}
 	if err := c.storage.SaveState(ctx, state); err != nil {
 		return mathmodels.TrainingSnapshot{}, fmt.Errorf("save training state: %w", err)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
 )
@@ -17,11 +18,14 @@ type trainingStorage interface {
 
 type ExerciseGenerator func(settings mathmodels.TrainingSettings) (mathmodels.Exercise, error)
 
+type Clock func() time.Time
+
 type Option func(*Controller)
 
 type Controller struct {
 	storage         trainingStorage
 	generate        ExerciseGenerator
+	clock           Clock
 	defaultSettings mathmodels.TrainingSettings
 }
 
@@ -29,6 +33,7 @@ func New(storage trainingStorage, opts ...Option) *Controller {
 	controller := &Controller{
 		storage:         storage,
 		generate:        generateExercise,
+		clock:           time.Now,
 		defaultSettings: mathmodels.DefaultTrainingSettings(),
 	}
 
@@ -52,6 +57,9 @@ func (c *Controller) validate() error {
 	}
 	if c.generate == nil {
 		return errors.New("exercise generator is nil")
+	}
+	if c.clock == nil {
+		return errors.New("clock is nil")
 	}
 
 	return nil

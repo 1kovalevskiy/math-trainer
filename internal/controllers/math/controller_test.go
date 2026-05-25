@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	mathcontroller "github.com/1kovalevskiy/math-trainer/internal/controllers/math"
 	mathmodels "github.com/1kovalevskiy/math-trainer/internal/models/math"
@@ -148,6 +149,38 @@ func TestController_DivisionAnswer(t *testing.T) {
 	}
 }
 
+func TestController_FinishedSummaryIncludesElapsedTrainingTime(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store := mathmemory.New()
+	startedAt := time.Date(2026, 5, 25, 10, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(2*time.Minute + 15*time.Second)
+	controller := mathcontroller.New(
+		store,
+		mathcontroller.WithExerciseGenerator(sequenceGenerator(
+			mathmodels.Exercise{Left: 2, Right: 3, Operator: mathmodels.OperatorAdd},
+		)),
+		mathcontroller.WithClock(sequenceClock(startedAt, finishedAt)),
+	)
+
+	_, err := controller.StartTraining(ctx, mathmodels.TrainingSettings{AddDifficulty: mathmodels.DifficultyEasy, SubtractDifficulty: mathmodels.DifficultyDisabled, MultiplyDifficulty: mathmodels.DifficultyDisabled, DivideDifficulty: mathmodels.DifficultyDisabled, ExamplesCount: 1})
+	if err != nil {
+		t.Fatalf("StartTraining() unexpected error: %v", err)
+	}
+
+	finished, err := controller.SubmitAnswer(ctx, "5")
+	if err != nil {
+		t.Fatalf("SubmitAnswer() unexpected error: %v", err)
+	}
+	if finished.Summary == nil {
+		t.Fatal("finished snapshot expected summary")
+	}
+	if got, want := finished.Summary.Elapsed, 2*time.Minute+15*time.Second; got != want {
+		t.Fatalf("summary elapsed mismatch: got %v, want %v", got, want)
+	}
+}
+
 func assertCurrentExercise(t *testing.T, snapshot mathmodels.TrainingSnapshot, order int, total int, exercise mathmodels.Exercise) {
 	t.Helper()
 
@@ -178,5 +211,18 @@ func sequenceGenerator(exercises ...mathmodels.Exercise) mathcontroller.Exercise
 		exercise := exercises[next]
 		next++
 		return exercise, nil
+	}
+}
+
+func sequenceClock(times ...time.Time) mathcontroller.Clock {
+	next := 0
+	return func() time.Time {
+		if next >= len(times) {
+			return times[len(times)-1]
+		}
+
+		current := times[next]
+		next++
+		return current
 	}
 }
