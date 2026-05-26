@@ -51,5 +51,5 @@ func (m Model) WithError(errText string) Model {
 }
 
 func (m Model) canSubmit() bool {
-	return m.input != ""
+	return m.input != "" && m.input != "-"
 }

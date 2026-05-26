@@ -52,7 +52,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "enter":
 			return m.selectCurrent()
 		default:
-			if len(typedMsg.Runes) == 1 && unicode.IsDigit(typedMsg.Runes[0]) {
+			if len(typedMsg.Runes) != 1 {
+				return m, nil
+			}
+
+			inputRune := typedMsg.Runes[0]
+			if unicode.IsDigit(inputRune) || inputRune == '-' && m.input == "" {
 				m.input += string(typedMsg.Runes)
 				m.errText = ""
 			}

@@ -30,11 +30,47 @@ func TestUpdateBackspaceRemovesInputSymbol(t *testing.T) {
 	}
 }
 
+func TestUpdateAllowsMinusOnlyAsFirstInputSymbol(t *testing.T) {
+	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
+
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+
+	if got, want := model.input, "-12"; got != want {
+		t.Fatalf("input mismatch: got %q, want %q", got, want)
+	}
+}
+
+func TestUpdateIgnoresMinusAfterDigit(t *testing.T) {
+	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
+
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+
+	if got, want := model.input, "12"; got != want {
+		t.Fatalf("input mismatch: got %q, want %q", got, want)
+	}
+}
+
 func TestUpdateEnterOnSubmitWithoutInputDoesNothing(t *testing.T) {
 	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
 
 	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd != nil {
 		t.Fatalf("unexpected cmd for empty submit: %v", cmd)
+	}
+}
+
+func TestUpdateEnterOnSubmitWithOnlyMinusDoesNothing(t *testing.T) {
+	model := NewModel(&mathmodels.CurrentExercise{}, mathmodels.TrainingSettings{})
+
+	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+
+	if cmd != nil {
+		t.Fatalf("unexpected cmd for minus-only submit: %v", cmd)
 	}
 }
