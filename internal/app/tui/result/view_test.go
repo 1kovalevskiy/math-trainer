@@ -280,6 +280,49 @@ func TestRenderGridRowsCentersTwoItemLastRowAsGroup(t *testing.T) {
 	}
 }
 
+func TestRenderGridRowsDoesNotWidenFullRowsWhenLastRowHasTwoItems(t *testing.T) {
+	t.Parallel()
+
+	rows := NewModel().renderGridRows([]string{"1", "2", "3", "4", "5", "6", "777777", "888888"}, 3, 3, 6, 24)
+
+	for _, line := range []string{rows[0], rows[2]} {
+		if got, want := spacesBetween(line, "1", "2"), resultColumnGap; strings.Contains(line, "1") && got != want {
+			t.Fatalf("first row gap mismatch: got %d, want %d, line=%q", got, want, line)
+		}
+		if got, want := spacesBetween(line, "2", "3"), resultColumnGap; strings.Contains(line, "2") && got != want {
+			t.Fatalf("first row second gap mismatch: got %d, want %d, line=%q", got, want, line)
+		}
+		if got, want := spacesBetween(line, "4", "5"), resultColumnGap; strings.Contains(line, "4") && got != want {
+			t.Fatalf("second row gap mismatch: got %d, want %d, line=%q", got, want, line)
+		}
+		if got, want := spacesBetween(line, "5", "6"), resultColumnGap; strings.Contains(line, "5") && got != want {
+			t.Fatalf("second row second gap mismatch: got %d, want %d, line=%q", got, want, line)
+		}
+	}
+}
+
+func TestRenderGridRowsCentersMiddleColumnInFullThreeColumnRows(t *testing.T) {
+	t.Parallel()
+
+	contentWidth := 24
+	rows := NewModel().renderGridRows([]string{"1", "2", "333333", "444444", "555555"}, 3, 2, 6, contentWidth)
+	first := rows[0]
+
+	middleStart := strings.Index(first, "2")
+	if middleStart == -1 {
+		t.Fatalf("expected middle item in first row, got %q", first)
+	}
+	if got, want := middleStart, (contentWidth-1)/2; got != want {
+		t.Fatalf("middle column offset mismatch: got %d, want %d, line=%q", got, want, first)
+	}
+	if got, want := spacesBetween(first, "1", "2"), resultColumnGap; got != want {
+		t.Fatalf("left-to-middle gap mismatch: got %d, want %d, line=%q", got, want, first)
+	}
+	if got, want := spacesBetween(first, "2", "333333"), resultColumnGap; got != want {
+		t.Fatalf("middle-to-right gap mismatch: got %d, want %d, line=%q", got, want, first)
+	}
+}
+
 func TestRenderGridRowsCentersSingleItemLastRowInTwoColumnGrid(t *testing.T) {
 	t.Parallel()
 
@@ -360,6 +403,16 @@ func sidePadding(line string) (int, int) {
 	left := len(line) - len(strings.TrimLeft(line, " "))
 	right := ui.Width(line) - ui.Width(strings.TrimRight(line, " "))
 	return left, right
+}
+
+func spacesBetween(line string, left string, right string) int {
+	leftIndex := strings.Index(line, left)
+	rightIndex := strings.Index(line, right)
+	if leftIndex == -1 || rightIndex == -1 || rightIndex < leftIndex {
+		return -1
+	}
+
+	return rightIndex - (leftIndex + len(left))
 }
 
 func abs(value int) int {

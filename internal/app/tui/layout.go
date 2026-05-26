@@ -10,11 +10,16 @@ import (
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/task"
 	"github.com/1kovalevskiy/math-trainer/internal/app/tui/ui"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 const (
-	hintAreaHeight    = 2
-	hintBottomPadding = 1
+	repositoryFooterText   = "github.com/1kovalevskiy/math-trainer"
+	repositoryFooterURL    = "https://github.com/1kovalevskiy/math-trainer"
+	repositoryFooterZoneID = "footer:repository"
+	hintAreaHeight         = 2
+	hintBottomPadding      = 1
+	footerAreaHeight       = 1
 )
 
 var panelSurface = lipgloss.NewStyle().Background(ui.PanelBackgroundColor)
@@ -22,9 +27,10 @@ var panelSurface = lipgloss.NewStyle().Background(ui.PanelBackgroundColor)
 type screenChromeConfig struct {
 	hints      []string
 	fitContent bool
+	footer     bool
 }
 
-func renderScreenContent(content string, hints []string, width int, height int) string {
+func renderScreenContent(content string, hints []string, width int, height int, footer bool, footerHovered bool) string {
 	if width < 1 {
 		width = 1
 	}
@@ -34,31 +40,37 @@ func renderScreenContent(content string, hints []string, width int, height int) 
 
 	hintArea := renderHintArea(hints, width)
 	hintHeight := hintAreaHeight
-	bottomPadding := hintBottomPadding
 	if strings.TrimSpace(hintArea) == "" {
 		hintHeight = 0
-		bottomPadding = 0
 	}
 
-	contentHeight := height - hintHeight - bottomPadding
+	footerArea := ""
+	footerHeight := 0
+	if footer {
+		footerArea = renderFooterArea(width, footerHovered)
+		footerHeight = footerAreaHeight
+	} else if hintHeight > 0 {
+		footerArea = panelPad(width)
+		footerHeight = hintBottomPadding
+	}
+
+	contentHeight := height - hintHeight - footerHeight
 	if contentHeight < 1 {
 		contentHeight = 1
-		bottomPadding = 0
 	}
 
 	body := renderCenteredBlock(fitBlock(centerBlock(content, width), width, contentHeight), width, contentHeight)
-	if hintHeight == 0 {
-		return body
+	parts := []string{body}
+	if hintHeight > 0 {
+		parts = append(parts, hintArea)
 	}
-
-	return strings.Join([]string{
-		body,
-		hintArea,
-		panelPad(width),
-	}, "\n")
+	if footerArea != "" {
+		parts = append(parts, footerArea)
+	}
+	return strings.Join(parts, "\n")
 }
 
-func renderScreenContentNoFit(content string, hints []string, width int, height int) string {
+func renderScreenContentNoFit(content string, hints []string, width int, height int, footer bool, footerHovered bool) string {
 	if width < 1 {
 		width = 1
 	}
@@ -68,38 +80,48 @@ func renderScreenContentNoFit(content string, hints []string, width int, height 
 
 	hintArea := renderHintArea(hints, width)
 	hintHeight := hintAreaHeight
-	bottomPadding := hintBottomPadding
 	if strings.TrimSpace(hintArea) == "" {
 		hintHeight = 0
-		bottomPadding = 0
 	}
 
-	contentHeight := height - hintHeight - bottomPadding
+	footerArea := ""
+	footerHeight := 0
+	if footer {
+		footerArea = renderFooterArea(width, footerHovered)
+		footerHeight = footerAreaHeight
+	} else if hintHeight > 0 {
+		footerArea = panelPad(width)
+		footerHeight = hintBottomPadding
+	}
+
+	contentHeight := height - hintHeight - footerHeight
 	if contentHeight < 1 {
 		contentHeight = 1
-		bottomPadding = 0
 	}
 
 	body := renderFixedBlock(content, width, contentHeight)
-	if hintHeight == 0 {
-		return body
+	parts := []string{body}
+	if hintHeight > 0 {
+		parts = append(parts, hintArea)
 	}
-
-	return strings.Join([]string{
-		body,
-		hintArea,
-		panelPad(width),
-	}, "\n")
+	if footerArea != "" {
+		parts = append(parts, footerArea)
+	}
+	return strings.Join(parts, "\n")
 }
 
-func contentHeightForScreen(hints []string, panelHeight int) int {
+func contentHeightForScreen(hints []string, panelHeight int, footer bool) int {
 	hintHeight := 0
-	bottomPadding := 0
 	if len(hints) > 0 {
 		hintHeight = hintAreaHeight
-		bottomPadding = hintBottomPadding
 	}
-	contentHeight := panelHeight - hintHeight - bottomPadding
+	footerHeight := 0
+	if footer {
+		footerHeight = footerAreaHeight
+	} else if hintHeight > 0 {
+		footerHeight = hintBottomPadding
+	}
+	contentHeight := panelHeight - hintHeight - footerHeight
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
@@ -108,6 +130,14 @@ func contentHeightForScreen(hints []string, panelHeight int) int {
 
 func renderHintArea(hints []string, width int) string {
 	return renderBottomBlock(renderHintBlock(hints, width), width, hintAreaHeight)
+}
+
+func renderFooterArea(width int, hovered bool) string {
+	style := ui.Footer
+	if hovered {
+		style = ui.FooterHover
+	}
+	return panelPadCenter(zone.Mark(repositoryFooterZoneID, style.Render(repositoryFooterText)), width)
 }
 
 func renderHintBlock(hints []string, width int) string {
@@ -250,6 +280,7 @@ func screenChrome(screen Screen) screenChromeConfig {
 		return screenChromeConfig{
 			hints:      start.Hints(),
 			fitContent: true,
+			footer:     true,
 		}
 	case ScreenSettings:
 		return screenChromeConfig{
