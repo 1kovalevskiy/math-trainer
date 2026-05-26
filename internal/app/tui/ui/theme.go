@@ -34,6 +34,13 @@ var (
 		Foreground(lipgloss.Color("246")).
 		Background(PanelBackgroundColor)
 
+	Footer = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("246")).
+		Background(PanelBackgroundColor)
+
+	FooterHover = Footer.
+			Underline(true)
+
 	Error = lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("203"))

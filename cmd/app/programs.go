@@ -34,7 +34,7 @@ func (a *App) initPrograms(ctx context.Context) error {
 
 	store := configTrainingSettingsStore{path: a.configPath}
 	model := tui.NewModel(ctx, a.mathController, store)
-	a.program = tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	a.program = tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	a.addCloser("bubbletea_program", func(_ context.Context) error {
 		if a.program != nil {
 			a.program.Quit()

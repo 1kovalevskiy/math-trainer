@@ -26,10 +26,11 @@ type Model struct {
 	width          int
 	height         int
 
-	startModel    start.Model
-	settingsModel settings.Model
-	taskModel     task.Model
-	resultModel   result.Model
+	repositoryFooterHovered bool
+	startModel              start.Model
+	settingsModel           settings.Model
+	taskModel               task.Model
+	resultModel             result.Model
 }
 
 func NewModel(ctx context.Context, mathController mathController, settingsStore trainingSettingsStore) Model {

@@ -13,12 +13,12 @@ func (m Model) View() string {
 	}
 
 	chrome := screenChrome(m.screen)
-	contentHeight := contentHeightForScreen(chrome.hints, frame.contentPanelHeight)
+	contentHeight := contentHeightForScreen(chrome.hints, frame.contentPanelHeight, chrome.footer)
 	content := m.viewCurrentScreen(frame.contentWidth, contentHeight)
 	if chrome.fitContent {
-		content = renderScreenContent(content, chrome.hints, frame.contentWidth, frame.contentPanelHeight)
+		content = renderScreenContent(content, chrome.hints, frame.contentWidth, frame.contentPanelHeight, chrome.footer, m.repositoryFooterHovered)
 	} else {
-		content = renderScreenContentNoFit(content, chrome.hints, frame.contentWidth, frame.contentPanelHeight)
+		content = renderScreenContentNoFit(content, chrome.hints, frame.contentWidth, frame.contentPanelHeight, chrome.footer, m.repositoryFooterHovered)
 	}
 
 	return zone.Scan(ui.Panel.Width(frame.panelWidth).Height(frame.panelHeight).Render(content))

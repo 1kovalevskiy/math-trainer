@@ -53,6 +53,7 @@ func (m Model) resultModelWithCurrentViewport(resultModel result.Model) result.M
 		return resultModel
 	}
 
-	contentHeight := contentHeightForScreen(screenHints(ScreenResult), frame.contentPanelHeight)
+	chrome := screenChrome(ScreenResult)
+	contentHeight := contentHeightForScreen(chrome.hints, frame.contentPanelHeight, chrome.footer)
 	return resultModel.WithContentSize(frame.contentWidth, contentHeight)
 }
