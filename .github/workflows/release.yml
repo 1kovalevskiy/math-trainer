@@ -10,7 +10,7 @@ jobs:
   release:
     name: Build and release
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout
@@ -45,7 +45,6 @@ jobs:
       - name: Build binaries
         run: |
           set -euo pipefail
-
           mkdir -p dist
 
           build() {
@@ -73,6 +72,6 @@ jobs:
         with:
           tag_name: release-${{ steps.version.outputs.version }}
           name: Release ${{ steps.version.outputs.version }}
-          target_commitish: master
+          target_commitish: main
           fail_on_unmatched_files: true
           files: dist/*
