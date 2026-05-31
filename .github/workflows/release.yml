@@ -77,5 +77,6 @@ jobs:
           tag_name: release-${{ steps.version.outputs.tag_version }}
           name: Math trainer ${{ steps.version.outputs.release_name_date }}
           target_commitish: main
+          make_latest: true
           fail_on_unmatched_files: true
           files: dist/*
