@@ -19,8 +19,10 @@ jobs:
       - name: Prepare version
         id: version
         run: |
-          version="$(date -u +'%Y%m%d%H%M')"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          tag_version="$(date -u +'%Y-%m-%d-%H%M')"
+          release_name_date="$(date -u +'%Y-%m-%d')"
+          echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
+          echo "release_name_date=$release_name_date" >> "$GITHUB_OUTPUT"
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -32,6 +34,7 @@ jobs:
         run: |
           unformatted="$(gofmt -l .)"
           if [ -n "$unformatted" ]; then
+            echo "The following files are not gofmt-formatted:"
             echo "$unformatted"
             exit 1
           fi
@@ -51,7 +54,8 @@ jobs:
             os="$1"
             arch="$2"
             ext="$3"
-            output="dist/math-trainer-${{ steps.version.outputs.version }}-${os}-${arch}${ext}"
+            output="dist/math-trainer-${{ steps.version.outputs.tag_version }}-${os}-${arch}${ext}"
+            echo "Building $output"
 
             GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build \
               -trimpath \
@@ -70,8 +74,8 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: release-${{ steps.version.outputs.version }}
-          name: Release ${{ steps.version.outputs.version }}
+          tag_name: release-${{ steps.version.outputs.tag_version }}
+          name: Math trainer ${{ steps.version.outputs.release_name_date }}
           target_commitish: main
           fail_on_unmatched_files: true
           files: dist/*
