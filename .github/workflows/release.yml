@@ -20,7 +20,7 @@ jobs:
         id: version
         run: |
           tag_version="$(date -u +'%Y-%m-%d-%H%M')"
-          release_name_date="$(date -u +'%Y-%m-%d')"
+          release_name_date="$(date -u +'%Y-%m-%d-%H%M')"
           echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
           echo "release_name_date=$release_name_date" >> "$GITHUB_OUTPUT"
 
